@@ -31,11 +31,9 @@ export const lesson: LessonContent = {
       exercise: {
         type: "terminal",
         task: "Создай папку notes, внутри неё файл idea.txt и убедись, что файл на месте.",
-        hint: "mkdir notes → touch notes/idea.txt → ls notes",
+        hint: "mkdir notes → touch notes/idea.txt → ls notes. Или зайди в папку (cd notes) и создай файл внутри — любой верный способ подходит.",
         goals: [
-          { kind: "run", match: "mkdir notes" },
           { kind: "fs", assert: { path: "/home/you/notes", exists: true, isDir: true } },
-          { kind: "run", match: "touch notes/idea.txt" },
           { kind: "fs", assert: { path: "/home/you/notes/idea.txt", exists: true } },
         ],
       },
