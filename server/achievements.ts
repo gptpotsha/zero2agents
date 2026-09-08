@@ -2,6 +2,7 @@ import "server-only";
 import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { computeStreak } from "@/server/streaks";
+import { getRegistry } from "@/lib/content/registry";
 
 export type Achievement = {
   code: string;
@@ -35,11 +36,8 @@ export function computeAchievements(userId: string): Achievement[] {
     .all()
     .map((r) => r.level_id);
 
-  // Все уроки в реестре: нужен общий счётчик из контента
-  const { lessons } = require("@/lib/content/registry") as {
-    lessons: { levelId: string; meta: { slug: string } }[];
-  };
-  const total = lessons.length;
+  // Общий счётчик уроков из реестра контента
+  const total = getRegistry().lessons.length;
   const perLevel = new Map<string, number>();
   for (const row of completedRows) perLevel.set(row.level_id, (perLevel.get(row.level_id) ?? 0) + 1);
 
