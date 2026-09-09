@@ -1,9 +1,11 @@
 import type { LessonContent, TrackManifest } from "@/lib/content/types";
-import { resolvePlaceholders } from "@/content/agents/claude-code/manifest";
 import { manifest as claudeCode } from "@/content/agents/claude-code/manifest";
+import { manifest as codex } from "@/content/agents/codex/manifest";
+import { manifest as gemini } from "@/content/agents/gemini/manifest";
+import { manifest as aider } from "@/content/agents/aider/manifest";
 
 /** Реестр треков. Добавление агента = новый манифест-файл + строка здесь. */
-export const TRACKS: TrackManifest[] = [claudeCode];
+export const TRACKS: TrackManifest[] = [claudeCode, codex, gemini, aider];
 
 export function listTracks(): TrackManifest[] {
   return TRACKS;
@@ -11,6 +13,25 @@ export function listTracks(): TrackManifest[] {
 
 export function getTrack(trackId: string): TrackManifest | null {
   return TRACKS.find((t) => t.id === trackId) ?? null;
+}
+
+/** Заменяет все {{agent.*}}-плейсхолдеры. Неизвестный плейсхолдер — ошибка сборки. */
+export function resolvePlaceholders(template: string, track: TrackManifest): string {
+  const vars: Record<string, string> = {
+    "agent.name": track.name,
+    "agent.binary": track.binary,
+    "agent.accent": track.accent,
+    "agent.tagline": track.tagline,
+  };
+  let out = template;
+  for (const [key, value] of Object.entries(vars)) {
+    out = out.replaceAll(`{{${key}}}`, value);
+  }
+  const unresolved = out.match(/\{\{agent\.[a-z]+\}\}/g);
+  if (unresolved) {
+    throw new Error(`Неизвестные плейсхолдеры (${track.id}): ${unresolved.join(", ")}`);
+  }
+  return out;
 }
 
 /**

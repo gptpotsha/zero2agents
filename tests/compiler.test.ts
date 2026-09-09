@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { compileLesson, getTrack, TRACKS } from "@/lib/content/compiler";
+import { compileLesson, getTrack, TRACKS, resolvePlaceholders } from "@/lib/content/compiler";
 import { getBaseRegistry, getLessonForTrack } from "@/lib/content/registry";
-import { resolvePlaceholders } from "@/content/agents/claude-code/manifest";
 
 describe("компилятор треков", () => {
   it("трек claude-code зарегистрирован", () => {
@@ -48,5 +47,28 @@ describe("getLessonForTrack", () => {
     const result = getLessonForTrack(base.levelId, base.meta.slug, "claude-code");
     expect(result).toBeDefined();
     expect(JSON.stringify(result)).not.toContain("{{agent.");
+  });
+
+  it("каждый generic-урок компилируется под КАЖДЫЙ трек без неразрешённых плейсхолдеров", () => {
+    const generics = getBaseRegistry().lessons.filter((l) => l.meta.scope === "generic-agent");
+    expect(generics.length).toBeGreaterThanOrEqual(1);
+    for (const track of TRACKS) {
+      for (const lesson of generics) {
+        const compiled = compileLesson(lesson, track);
+        const serialized = JSON.stringify(compiled);
+        expect(serialized, `${lesson.meta.slug} → ${track.id}`).not.toContain("{{agent.");
+        expect(serialized, `${lesson.meta.slug} → ${track.id}`).toContain(track.binary);
+      }
+    }
+  });
+
+  it("все 4 трека уникальны по id и binary", () => {
+    const ids = new Set(TRACKS.map((t) => t.id));
+    const binaries = new Set(TRACKS.map((t) => t.binary));
+    expect(ids.size).toBe(TRACKS.length);
+    expect(binaries.size).toBe(TRACKS.length);
+    expect(TRACKS.map((t) => t.id)).toEqual(
+      expect.arrayContaining(["claude-code", "codex", "gemini", "aider"]),
+    );
   });
 });
