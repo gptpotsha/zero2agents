@@ -34,6 +34,26 @@ export const lesson: LessonContent = {
   steps: [
     {
       id: "s1",
+      title: "Собери конвейер руками",
+      content: [
+        { type: "p", text: "В файле notes.txt три строки. Прогони их через конвейер: cat notes.txt | head -n 2, а затем посчитай строки: cat notes.txt | wc -l." },
+      ],
+      exercise: {
+        type: "terminal",
+        task: "cat notes.txt | head -n 2 → cat notes.txt | wc -l.",
+        hint: "Труба | передаёт вывод левой команды на вход правой.",
+        fixture: {
+          files: { "/home/you/notes.txt": "первая\nвторая\nтретья" },
+        },
+        goals: [
+          { kind: "run", match: "cat notes.txt | head -n 2" },
+          { kind: "run", match: "cat notes.txt | wc -l" },
+          { kind: "output", contains: "3" },
+        ],
+      },
+    },
+    {
+      id: "s2",
       title: "Quiz: что делает труба",
       exercise: {
         type: "quiz",
@@ -49,7 +69,7 @@ export const lesson: LessonContent = {
       },
     },
     {
-      id: "s2",
+      id: "s3",
       title: "Quiz: собери конвейер",
       exercise: {
         type: "quiz",
@@ -65,7 +85,7 @@ export const lesson: LessonContent = {
       },
     },
     {
-      id: "s3",
+      id: "s4",
       title: "Заполни пропуски",
       exercise: {
         type: "fill-blank",

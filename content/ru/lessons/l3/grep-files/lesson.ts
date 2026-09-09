@@ -34,13 +34,28 @@ export const lesson: LessonContent = {
   steps: [
     {
       id: "s1",
-      title: "Quiz: что выведет grep",
+      title: "Поищи вживую",
       content: [
         {
           type: "p",
-          text: "Пусть в файле zoo.txt три строки: «слон», «котёнок», «собака». Разберись, что напечатает поиск.",
+          text: "В файле zoo.txt три строки. Выполни grep кот zoo.txt и посмотри, что найдётся.",
         },
       ],
+      exercise: {
+        type: "terminal",
+        task: "grep кот zoo.txt",
+        fixture: {
+          files: { "/home/you/zoo.txt": "слон\nкотёнок\nсобака" },
+        },
+        goals: [
+          { kind: "run", match: "grep кот zoo.txt" },
+          { kind: "output", contains: "котёнок" },
+        ],
+      },
+    },
+    {
+      id: "s2",
+      title: "Quiz: что выведет grep",
       exercise: {
         type: "quiz",
         question: "Что напечатает команда grep кот zoo.txt по файлу со строками «слон», «котёнок», «собака»?",
@@ -55,7 +70,7 @@ export const lesson: LessonContent = {
       },
     },
     {
-      id: "s2",
+      id: "s3",
       title: "Заполни пропуски",
       exercise: {
         type: "fill-blank",

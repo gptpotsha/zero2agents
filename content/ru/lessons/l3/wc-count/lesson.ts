@@ -35,6 +35,26 @@ export const lesson: LessonContent = {
   steps: [
     {
       id: "s1",
+      title: "Посчитай вживую",
+      content: [
+        { type: "p", text: "В файле shopping.txt список из 4 покупок. Посчитай строки (wc -l shopping.txt) и слова (wc -w shopping.txt)." },
+      ],
+      exercise: {
+        type: "terminal",
+        task: "wc -l shopping.txt → wc -w shopping.txt.",
+        hint: "Флаг -l — только строки, -w — только слова.",
+        fixture: {
+          files: { "/home/you/shopping.txt": "хлеб\nмолоко\nсыр\nкофе" },
+        },
+        goals: [
+          { kind: "run", match: "wc -l shopping.txt" },
+          { kind: "run", match: "wc -w shopping.txt" },
+          { kind: "output", contains: "4" },
+        ],
+      },
+    },
+    {
+      id: "s2",
       title: "Quiz: порядок чисел",
       exercise: {
         type: "quiz",
@@ -50,7 +70,7 @@ export const lesson: LessonContent = {
       },
     },
     {
-      id: "s2",
+      id: "s3",
       title: "Заполни пропуски",
       exercise: {
         type: "fill-blank",

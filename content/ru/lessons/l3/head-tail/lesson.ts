@@ -35,6 +35,29 @@ export const lesson: LessonContent = {
   steps: [
     {
       id: "s1",
+      title: "Попробуй вживую",
+      content: [
+        { type: "p", text: "В папке лежит лог из 6 строк. Посмотри его начало (head log.txt), затем последние две строки (tail -n 2 log.txt)." },
+      ],
+      exercise: {
+        type: "terminal",
+        task: "head log.txt → tail -n 2 log.txt.",
+        hint: "Сначала просто head log.txt, затем tail -n 2 log.txt.",
+        fixture: {
+          files: {
+            "/home/you/log.txt":
+              "запись 1: сервис запущен\nзапись 2: обработан запрос\nзапись 3: обработан запрос\nзапись 4: WARNING таймаут\nзапись 5: обработан запрос\nзапись 6: смена окончена",
+          },
+        },
+        goals: [
+          { kind: "run", match: "head log.txt" },
+          { kind: "run", match: "tail -n 2 log.txt" },
+          { kind: "output", contains: "запись 6" },
+        ],
+      },
+    },
+    {
+      id: "s2",
       title: "Quiz: какая команда что показывает",
       exercise: {
         type: "quiz",
@@ -50,7 +73,7 @@ export const lesson: LessonContent = {
       },
     },
     {
-      id: "s2",
+      id: "s3",
       title: "Quiz: флаг -n",
       exercise: {
         type: "quiz",
@@ -66,7 +89,7 @@ export const lesson: LessonContent = {
       },
     },
     {
-      id: "s3",
+      id: "s4",
       title: "Заполни пропуски",
       exercise: {
         type: "fill-blank",
