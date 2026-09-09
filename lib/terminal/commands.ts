@@ -8,13 +8,16 @@ export interface TermLine {
 export interface ParsedCommand {
   argv: string[];
   redirectFile?: string;
+  /** true — дописать в конец (>>), false/undefined — перезаписать (>) */
+  append?: boolean;
 }
 
-/** Разбор строки на аргументы (уважает кавычки) и поддержка простого редиректа >. */
+/** Разбор строки на аргументы (уважает кавычки), редирект > и append >>. */
 export function parseShell(raw: string): ParsedCommand {
   const tokens: string[] = [];
   const argv: string[] = [];
   let redirectFile: string | undefined;
+  let parsed_append = false;
   let current = "";
   let quote: "'" | '"' | null = null;
 
@@ -25,7 +28,8 @@ export function parseShell(raw: string): ParsedCommand {
     }
   };
 
-  for (const ch of raw) {
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
     if (quote) {
       if (ch === quote) quote = null;
       else current += ch;
@@ -37,7 +41,12 @@ export function parseShell(raw: string): ParsedCommand {
     }
     if (ch === ">") {
       pushToken();
-      tokens.push(">");
+      if (raw[i + 1] === ">") {
+        tokens.push(">>");
+        i++; // съели второй символ
+      } else {
+        tokens.push(">");
+      }
       continue;
     }
     if (ch === " " || ch === "\t") {
@@ -48,19 +57,24 @@ export function parseShell(raw: string): ParsedCommand {
   }
   pushToken();
 
+  // >> — один токен append; > — перезапись
+  const appendIdx = tokens.indexOf(">>");
   const redirectIdx = tokens.indexOf(">");
-  if (redirectIdx !== -1) {
-    if (tokens.indexOf(">", redirectIdx + 1) !== -1) {
-      throw new Error("Синтаксис: допускается один редирект >");
+  const idx = appendIdx !== -1 ? appendIdx : redirectIdx;
+  if (idx !== -1) {
+    const op = appendIdx !== -1 ? ">>" : ">";
+    if (tokens.indexOf(">", idx + 1) !== -1 || tokens.indexOf(">>", idx + 1) !== -1) {
+      throw new Error(`Синтаксис: допускается один редирект ${op}`);
     }
-    const tail = tokens.slice(redirectIdx + 1);
-    if (tail.length !== 1) throw new Error("Синтаксис: нужно имя файла после >");
-    argv.push(...tokens.slice(0, redirectIdx));
+    const tail = tokens.slice(idx + 1);
+    if (tail.length !== 1) throw new Error(`Синтаксис: нужно имя файла после ${op}`);
+    argv.push(...tokens.slice(0, idx));
     redirectFile = tail[0];
+    if (appendIdx !== -1) parsed_append = true;
   } else {
     argv.push(...tokens);
   }
-  return { argv, redirectFile };
+  return { argv, redirectFile, append: parsed_append };
 }
 
 export type CommandContext = { vfs: VirtualFileSystem; log: string[] };
@@ -84,8 +98,16 @@ export function executeCommand(raw: string, ctx: CommandContext): TermLine[] {
 
   const writeResult = (content: string) => {
     if (parsed.redirectFile) {
-      const file = vfs.mkfile(parsed.redirectFile, content);
-      if (!file) err(`bash: не удалось записать в ${parsed.redirectFile}`);
+      if (parsed.append) {
+        // >> — дописать в конец существующего файла
+        const existing = vfs.lookupFile(parsed.redirectFile);
+        const merged = existing ? `${existing.content}\n${content}` : content;
+        const file = vfs.mkfile(parsed.redirectFile, merged);
+        if (!file) err(`bash: не удалось записать в ${parsed.redirectFile}`);
+      } else {
+        const file = vfs.mkfile(parsed.redirectFile, content);
+        if (!file) err(`bash: не удалось записать в ${parsed.redirectFile}`);
+      }
     } else {
       content.split("\n").filter((l, i, a) => !(l === "" && i === a.length - 1)).forEach(out);
     }

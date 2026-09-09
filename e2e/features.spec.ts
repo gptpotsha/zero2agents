@@ -10,7 +10,7 @@ test("шпаргалка уровня открывается с дашборда
   await page.getByRole("button", { name: "Создать аккаунт" }).click();
   await page.waitForURL("**/dashboard", { timeout: 20000 });
 
-  await page.getByRole("button", { name: "📋 Шпаргалка" }).click();
+  await page.getByRole("button", { name: "📋 Шпаргалка" }).first().click();
   await expect(page.getByText("Шпаргалка: Компьютеры — это не магия")).toBeVisible({ timeout: 10000 });
   await expect(page.getByText("Список файлов и папок в текущей папке")).toBeVisible();
   await page.keyboard.press("Escape");

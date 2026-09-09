@@ -57,6 +57,26 @@ describe("команды", () => {
     expect(vfs.lookupFile("/home/you/note.txt")?.content).toBe("привет мир");
   });
 
+  it(">> дописывает в конец, сохраняя старое содержимое", () => {
+    const vfs = new VirtualFileSystem({ files: { "/home/you/diary.txt": "день первый" } });
+    executeCommand("echo день второй >> diary.txt", { vfs, log: [] });
+    const content = vfs.lookupFile("/home/you/diary.txt")?.content;
+    expect(content).toContain("день первый");
+    expect(content).toContain("день второй");
+  });
+
+  it(">> создаёт файл, если его не было", () => {
+    const vfs = new VirtualFileSystem();
+    executeCommand("echo строчка >> log.txt", { vfs, log: [] });
+    expect(vfs.lookupFile("/home/you/log.txt")?.content).toBe("строчка");
+  });
+
+  it(">> для несуществующей папки даёт ошибку", () => {
+    const vfs = new VirtualFileSystem();
+    const res = executeCommand("echo x >> nodir/f.txt", { vfs, log: [] });
+    expect(res[0].tone).toBe("err");
+  });
+
   it("неизвестная команда даёт ошибку", () => {
     const vfs = new VirtualFileSystem();
     const res = executeCommand("foobar", { vfs, log: [] });
