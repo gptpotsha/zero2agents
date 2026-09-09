@@ -59,6 +59,11 @@ import { lesson as whatIsCloud } from "./lessons/l5/what-is-cloud/lesson";
 import { lesson as deploying } from "./lessons/l5/deploying/lesson";
 import { lesson as domainsDns } from "./lessons/l5/domains-dns/lesson";
 import { lesson as l5Review } from "./lessons/l5/l5-review/lesson";
+import { lesson as meetYourAgent } from "./lessons/l8/meet-your-agent/lesson";
+import { lesson as firstConversation } from "./lessons/l8/first-conversation/lesson";
+import { lesson as agentReadsProject } from "./lessons/l8/agent-reads-project/lesson";
+import { lesson as askingEffectively } from "./lessons/l8/asking-effectively/lesson";
+import { lesson as l8Review } from "./lessons/l8/l8-review/lesson";
 
 /** Мета уровней. Уровни добавляются по мере наполнения контентом (см. план: Ф1). */
 export const LEVELS: LevelMeta[] = [
@@ -154,6 +159,19 @@ export const LEVELS: LevelMeta[] = [
       { cmd: "DNS: домен → IP", description: "Телефонная книга интернета: имя переводится в адрес" },
     ],
   },
+  {
+    id: "l8",
+    order: 8,
+    title: "Твой AI-агент",
+    subtitle: "Первые шаги с агентом: запуск, контекст, эффективные запросы",
+    scope: "agent",
+    cheatSheet: [
+      { cmd: "cd my-project", description: "Контекст агента = папка проекта" },
+      { cmd: "{{agent.binary}}", description: "Запуск агента в текущей папке" },
+      { cmd: "ЧТО + ГДЕ + признак + контекст", description: "Формула сильного запроса" },
+      { cmd: "git log", description: "Агент читает и историю проекта" },
+    ],
+  },
 ];
 
 /** Плоский список: какой урок лежит в каком уровне и в каком порядке. */
@@ -220,4 +238,9 @@ export const LESSON_DEFS: LessonDef[] = [
   { levelId: "l5", order: 12, lesson: deploying },
   { levelId: "l5", order: 13, lesson: domainsDns },
   { levelId: "l5", order: 14, lesson: l5Review },
+  { levelId: "l8", order: 1, lesson: meetYourAgent },
+  { levelId: "l8", order: 2, lesson: firstConversation },
+  { levelId: "l8", order: 3, lesson: agentReadsProject },
+  { levelId: "l8", order: 4, lesson: askingEffectively },
+  { levelId: "l8", order: 5, lesson: l8Review },
 ];

@@ -1,13 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResetProgressButton } from "@/components/settings/reset-progress-button";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
+import { TrackPicker } from "@/components/settings/track-picker";
 import { getSessionUser } from "@/lib/auth/session";
+import { getDb, schema } from "@/lib/db";
+import { eq } from "drizzle-orm";
+import { listTracks } from "@/lib/content/compiler";
 
 export const metadata = { title: "Настройки аккаунта" };
 
 export default async function SettingsPage() {
   const user = await getSessionUser();
   if (!user) return null; // (app)/layout редиректит на /login
+
+  const row = getDb()
+    .select({ track_id: schema.users.track_id })
+    .from(schema.users)
+    .where(eq(schema.users.id, user.id))
+    .get();
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8">
@@ -17,6 +27,19 @@ export default async function SettingsPage() {
       </p>
 
       <div className="mt-8 space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Твой AI-агент</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Агентские уровни (8+) показывают команды и примеры для выбранного агента.
+              Поменять можно в любой момент.
+            </p>
+            <TrackPicker tracks={listTracks()} currentTrackId={row?.track_id ?? null} />
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Смена пароля</CardTitle>
@@ -32,18 +55,6 @@ export default async function SettingsPage() {
           </CardHeader>
           <CardContent>
             <ResetProgressButton />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">План</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Все уроки курса бесплатны — навсегда. Новые настройки появляются по мере
-              развития платформы.
-            </p>
           </CardContent>
         </Card>
       </div>

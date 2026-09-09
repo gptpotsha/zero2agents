@@ -1,15 +1,19 @@
 import { LESSON_DEFS, LEVELS } from "@/content/ru";
-import { lessonContentSchema, type RegisteredLesson, type LevelMeta } from "@/lib/content/types";
+import { lessonContentSchema, type RegisteredLesson, type LevelMeta, type LessonContent } from "@/lib/content/types";
+import { getTrack, TRACKS, compileLesson } from "@/lib/content/compiler";
 
 export type LessonNotFound = null;
 
-let cache: { lessons: RegisteredLesson[]; byKey: Map<string, RegisteredLesson> } | undefined;
+type Scope = LessonContent["meta"]["scope"];
+
+let baseCache: { lessons: RegisteredLesson[]; byKey: Map<string, RegisteredLesson> } | undefined;
+let compiledCache = new Map<string, RegisteredLesson>();
 
 /**
- * Собирает и валидирует контент один раз. Любой невалидный урок
- * роняет реестр — ошибка видна сразу (в dev, в тестах и в сборке).
+ * Базовый реестр (без трек-подстановки) — собирается и валидируется один раз.
+ * Невалидный урок роняет реестр: ошибка видна в dev, тестах и сборке.
  */
-function buildRegistry() {
+function buildBase() {
   const lessons: RegisteredLesson[] = LESSON_DEFS.map((def) => {
     const parsed = lessonContentSchema.safeParse(def.lesson);
     if (!parsed.success) {
@@ -23,26 +27,58 @@ function buildRegistry() {
   return { lessons, byKey };
 }
 
+export function getBaseRegistry() {
+  if (!baseCache) baseCache = buildBase();
+  return baseCache;
+}
+
+/** Совместимость со старым API — базовый реестр без компиляции. */
 export function getRegistry() {
-  if (!cache) cache = buildRegistry();
-  return cache;
+  return getBaseRegistry();
+}
+
+/**
+ * Урок, скомпилированный под трек: generic-agent уроки получают
+ * {{agent.*}} → реальные значения манифеста; common-уроки возвращаются как есть.
+ */
+export function getLessonForTrack(levelId: string, slug: string, trackId: string): RegisteredLesson | null {
+  const base = getBaseRegistry().byKey.get(`${levelId}/${slug}`);
+  if (!base) return null;
+  if (base.meta.scope !== "generic-agent") return base;
+  const key = `${trackId}:${levelId}/${slug}`;
+  const cached = compiledCache.get(key);
+  if (cached) return cached;
+  const track = getTrack(trackId);
+  if (!track) return null;
+  const compiled = lessonContentSchema.parse(compileLesson(base, track)) as RegisteredLesson;
+  compiledCache.set(key, compiled);
+  return compiled;
 }
 
 export function getLesson(levelId: string, slug: string): RegisteredLesson | null {
-  return getRegistry().byKey.get(`${levelId}/${slug}`) ?? null;
+  return getBaseRegistry().byKey.get(`${levelId}/${slug}`) ?? null;
 }
 
 export function listLevels(): (LevelMeta & { lessons: RegisteredLesson[] })[] {
-  const { lessons } = getRegistry();
+  const { lessons } = getBaseRegistry();
   return LEVELS.map((level) => ({
     ...level,
     lessons: lessons.filter((l) => l.levelId === level.id).sort((a, b) => a.order - b.order),
   }));
 }
 
+/** Список активных треков (для UI выбора агента). */
+export function listTracks() {
+  return TRACKS;
+}
+
 /** Для прогресса: порядковый номер урока в своём уровне (1-based). */
 export function lessonIndex(levelId: string, slug: string): number {
-  const { lessons } = getRegistry();
-  const idx = lessons.findIndex((l) => l.levelId === levelId && l.meta.slug === slug);
-  return idx === -1 ? -1 : lessons.filter((l) => l.levelId === levelId).sort((a, b) => a.order - b.order).findIndex((l) => l.meta.slug === slug);
+  const { lessons } = getBaseRegistry();
+  return lessons
+    .filter((l) => l.levelId === levelId)
+    .sort((a, b) => a.order - b.order)
+    .findIndex((l) => l.meta.slug === slug);
 }
+
+export type { Scope };

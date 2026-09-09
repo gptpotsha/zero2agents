@@ -1,13 +1,13 @@
 import type { TrackManifest } from "@/lib/content/types";
 
 /**
- * Мини-трек Claude Code (паритет с оригиналом zero2claude).
- * В Ф0 используется как каркас: generic-уроки с {{agent.*}} появятся в Ф1.
+ * Мини-трек [CC] (паритет с оригиналом zero2claude).
  * Плейсхолдеры в тексте/фикстурах/ответах резолвятся из этого манифеста.
+ * Добавление нового трека = новый файл-манифест с тем же интерфейсом.
  */
 export const manifest: TrackManifest = {
   id: "claude-code",
-  name: "Claude Code",
+  name: "[CC]",
   binary: "claude",
   accent: "#D97757",
   tagline: "AI-агент от Anthropic для терминала",
@@ -24,9 +24,21 @@ export const manifest: TrackManifest = {
   ],
 };
 
+/** Заменяет все {{agent.*}}-плейсхолдеры. Неизвестный плейсхолдер — ошибка сборки. */
 export function resolvePlaceholders(template: string, track: TrackManifest): string {
-  return template
-    .replaceAll("{{agent.name}}", track.name)
-    .replaceAll("{{agent.binary}}", track.binary)
-    .replaceAll("{{agent.accent}}", track.accent);
+  const vars: Record<string, string> = {
+    "agent.name": track.name,
+    "agent.binary": track.binary,
+    "agent.accent": track.accent,
+    "agent.tagline": track.tagline,
+  };
+  let out = template;
+  for (const [key, value] of Object.entries(vars)) {
+    out = out.replaceAll(`{{${key}}}`, value);
+  }
+  const unresolved = out.match(/\{\{agent\.[a-z]+\}\}/g);
+  if (unresolved) {
+    throw new Error(`Неизвестные плейсхолдеры (${track.id}): ${unresolved.join(", ")}`);
+  }
+  return out;
 }

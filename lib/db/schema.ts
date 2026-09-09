@@ -7,6 +7,8 @@ export const users = sqliteTable("users", {
   // Формат: scrypt$N$r$p$salt_b64$hash_b64
   pass_hash: text("pass_hash").notNull(),
   role: text("role").notNull().default("user"), // free-план сегодня; задел под entitlements
+  /** Выбранный агентский трек (claude-code | codex | gemini | ...) — null до выбора. */
+  track_id: text("track_id"),
   created_at: integer("created_at").notNull(),
 });
 

@@ -15,6 +15,13 @@
       "when": 1788874625955,
       "tag": "0001_cooing_surge",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788945980679,
+      "tag": "0002_lucky_nextwave",
+      "breakpoints": true
     }
   ]
 }

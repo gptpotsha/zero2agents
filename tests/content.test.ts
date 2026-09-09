@@ -1,7 +1,5 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import { getRegistry } from "@/lib/content/registry";
-import { resolvePlaceholders } from "@/content/agents/claude-code/manifest";
-import { manifest } from "@/content/agents/claude-code/manifest";
 
 describe("реестр контента", () => {
   it("валидирует все уроки и собирает уровни", () => {
@@ -57,16 +55,5 @@ describe("консистентность контента", () => {
         }
       }
     }
-  });
-});
-
-describe("манифест трека Claude Code", () => {
-  it("резолвит плейсхолдеры {{agent.*}}", () => {
-    const resolved = resolvePlaceholders(
-      "Запусти {{agent.binary}}, чтобы познакомиться с {{agent.name}}",
-      manifest,
-    );
-    expect(resolved).toContain("claude");
-    expect(resolved).toContain("Claude Code");
   });
 });

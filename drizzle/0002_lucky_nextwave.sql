@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `track_id` text;

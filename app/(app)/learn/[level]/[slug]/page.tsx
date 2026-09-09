@@ -7,7 +7,7 @@ import { LessonPlayer } from "@/components/course/lesson-player";
 import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/session";
-import { getLesson, listLevels } from "@/lib/content/registry";
+import { getLesson, getLessonForTrack, listLevels } from "@/lib/content/registry";
 
 type Params = { params: Promise<{ level: string; slug: string }> };
 
@@ -22,7 +22,13 @@ export default async function LessonPage({ params }: Params) {
   if (!user) return null; // (app)/layout редиректит на /login
 
   const { level: levelId, slug } = await params;
-  const lesson = getLesson(levelId, slug);
+  // Урок компилируется под выбранный агентский трек (generic-agent уроки)
+  const trackRow = getDb()
+    .select({ track_id: schema.users.track_id })
+    .from(schema.users)
+    .where(eq(schema.users.id, user.id))
+    .get();
+  const lesson = getLessonForTrack(levelId, slug, trackRow?.track_id ?? "claude-code") ?? getLesson(levelId, slug);
   if (!lesson) notFound();
 
   const db = getDb();
