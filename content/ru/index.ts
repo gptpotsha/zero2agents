@@ -45,6 +45,20 @@ import { lesson as professionalWorkflow } from "./lessons/l4/professional-workfl
 import { lesson as writingGoodCommits } from "./lessons/l4/writing-good-commits/lesson";
 import { lesson as fullWorkflowChallenge } from "./lessons/l4/full-workflow-challenge/lesson";
 import { lesson as l4Review } from "./lessons/l4/l4-review/lesson";
+import { lesson as whatIsCode } from "./lessons/l5/what-is-code/lesson";
+import { lesson as programmingLanguages } from "./lessons/l5/programming-languages/lesson";
+import { lesson as frontendBackend } from "./lessons/l5/frontend-backend/lesson";
+import { lesson as whatIsClient } from "./lessons/l5/what-is-client/lesson";
+import { lesson as whatIsServer } from "./lessons/l5/what-is-server/lesson";
+import { lesson as httpConversation } from "./lessons/l5/http-conversation/lesson";
+import { lesson as whatIsApi } from "./lessons/l5/what-is-api/lesson";
+import { lesson as jsonFormat } from "./lessons/l5/json-format/lesson";
+import { lesson as databases } from "./lessons/l5/databases/lesson";
+import { lesson as sqlBasics } from "./lessons/l5/sql-basics/lesson";
+import { lesson as whatIsCloud } from "./lessons/l5/what-is-cloud/lesson";
+import { lesson as deploying } from "./lessons/l5/deploying/lesson";
+import { lesson as domainsDns } from "./lessons/l5/domains-dns/lesson";
+import { lesson as l5Review } from "./lessons/l5/l5-review/lesson";
 
 /** Мета уровней. Уровни добавляются по мере наполнения контентом (см. план: Ф1). */
 export const LEVELS: LevelMeta[] = [
@@ -123,6 +137,23 @@ export const LEVELS: LevelMeta[] = [
       { cmd: "git push / git pull", description: "Выгрузить / скачать с облака (GitHub)" },
     ],
   },
+  {
+    id: "l5",
+    order: 5,
+    title: "Как софт работает на самом деле",
+    subtitle: "Клиент, сервер, API, базы данных и облако — без магии",
+    scope: "foundation",
+    cheatSheet: [
+      { cmd: "GET / POST", description: "HTTP-методы: «дай посмотреть» / «прими и сохрани»" },
+      { cmd: "200 / 404 / 500", description: "Статус-коды: успех / не найдено / ошибка сервера" },
+      { cmd: "endpoint", description: "Адрес, по которому API принимает свой вид запросов" },
+      { cmd: 'JSON: {"ключ": "значение"}', description: "Текстовый формат данных для API и конфигов" },
+      { cmd: "БД: таблицы → строки → столбцы", description: "Организованное хранилище данных приложения" },
+      { cmd: "SELECT / INSERT", description: "SQL: прочитать / добавить данные в таблицу" },
+      { cmd: "localhost → прод (deploy)", description: "Песочница у себя → боевой сервер для пользователей" },
+      { cmd: "DNS: домен → IP", description: "Телефонная книга интернета: имя переводится в адрес" },
+    ],
+  },
 ];
 
 /** Плоский список: какой урок лежит в каком уровне и в каком порядке. */
@@ -175,4 +206,18 @@ export const LESSON_DEFS: LessonDef[] = [
   { levelId: "l4", order: 15, lesson: writingGoodCommits },
   { levelId: "l4", order: 16, lesson: fullWorkflowChallenge },
   { levelId: "l4", order: 17, lesson: l4Review },
+  { levelId: "l5", order: 1, lesson: whatIsCode },
+  { levelId: "l5", order: 2, lesson: programmingLanguages },
+  { levelId: "l5", order: 3, lesson: frontendBackend },
+  { levelId: "l5", order: 4, lesson: whatIsClient },
+  { levelId: "l5", order: 5, lesson: whatIsServer },
+  { levelId: "l5", order: 6, lesson: httpConversation },
+  { levelId: "l5", order: 7, lesson: whatIsApi },
+  { levelId: "l5", order: 8, lesson: jsonFormat },
+  { levelId: "l5", order: 9, lesson: databases },
+  { levelId: "l5", order: 10, lesson: sqlBasics },
+  { levelId: "l5", order: 11, lesson: whatIsCloud },
+  { levelId: "l5", order: 12, lesson: deploying },
+  { levelId: "l5", order: 13, lesson: domainsDns },
+  { levelId: "l5", order: 14, lesson: l5Review },
 ];
