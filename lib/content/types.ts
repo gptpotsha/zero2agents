@@ -31,6 +31,11 @@ export const terminalGoalSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("run"), match: z.string() }),
   z.object({ kind: z.literal("fs"), assert: fsAssertSchema }),
   z.object({ kind: z.literal("output"), contains: z.string() }),
+  z.object({
+    kind: z.literal("git"),
+    state: z.enum(["repo", "clean", "committed", "has-commits", "message"]),
+    message: z.string().optional(),
+  }),
 ]);
 export type TerminalGoal = z.infer<typeof terminalGoalSchema>;
 

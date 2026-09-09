@@ -28,6 +28,23 @@ import { lesson as wcCount } from "./lessons/l3/wc-count/lesson";
 import { lesson as grepPipeWc } from "./lessons/l3/grep-pipe-wc/lesson";
 import { lesson as logDetective } from "./lessons/l3/log-detective/lesson";
 import { lesson as l3Review } from "./lessons/l3/l3-review/lesson";
+import { lesson as whyVersionControl } from "./lessons/l4/why-version-control/lesson";
+import { lesson as startingRepo } from "./lessons/l4/starting-repo/lesson";
+import { lesson as stagingChanges } from "./lessons/l4/staging-changes/lesson";
+import { lesson as firstCommit } from "./lessons/l4/first-commit/lesson";
+import { lesson as makingChanges } from "./lessons/l4/making-changes/lesson";
+import { lesson as viewingHistory } from "./lessons/l4/viewing-history/lesson";
+import { lesson as seeingDifferences } from "./lessons/l4/seeing-differences/lesson";
+import { lesson as undoingChanges } from "./lessons/l4/undoing-changes/lesson";
+import { lesson as understandingGithub } from "./lessons/l4/understanding-github/lesson";
+import { lesson as pushingToGithub } from "./lessons/l4/pushing-to-github/lesson";
+import { lesson as downloadingProjects } from "./lessons/l4/downloading-projects/lesson";
+import { lesson as creatingBranches } from "./lessons/l4/creating-branches/lesson";
+import { lesson as mergingBranches } from "./lessons/l4/merging-branches/lesson";
+import { lesson as professionalWorkflow } from "./lessons/l4/professional-workflow/lesson";
+import { lesson as writingGoodCommits } from "./lessons/l4/writing-good-commits/lesson";
+import { lesson as fullWorkflowChallenge } from "./lessons/l4/full-workflow-challenge/lesson";
+import { lesson as l4Review } from "./lessons/l4/l4-review/lesson";
 
 /** Мета уровней. Уровни добавляются по мере наполнения контентом (см. план: Ф1). */
 export const LEVELS: LevelMeta[] = [
@@ -90,6 +107,22 @@ export const LEVELS: LevelMeta[] = [
       { cmd: "grep слово файл | wc -l", description: "Посчитать совпадения" },
     ],
   },
+  {
+    id: "l4",
+    order: 4,
+    title: "История кода: git и GitHub",
+    subtitle: "Никогда не теряй работу — фиксируй каждую версию",
+    scope: "foundation",
+    cheatSheet: [
+      { cmd: "git init", description: "Создать репозиторий в текущей папке" },
+      { cmd: "git status", description: "Что изменилось, что готово к коммиту" },
+      { cmd: "git add <файл|.>", description: "Поместить изменения в индекс" },
+      { cmd: 'git commit -m "текст"', description: "Снимок проекта в историю с сообщением" },
+      { cmd: "git log", description: "История коммитов" },
+      { cmd: "git branch / git switch", description: "Ветки: параллельные линии истории" },
+      { cmd: "git push / git pull", description: "Выгрузить / скачать с облака (GitHub)" },
+    ],
+  },
 ];
 
 /** Плоский список: какой урок лежит в каком уровне и в каком порядке. */
@@ -125,4 +158,21 @@ export const LESSON_DEFS: LessonDef[] = [
   { levelId: "l3", order: 11, lesson: grepPipeWc },
   { levelId: "l3", order: 12, lesson: logDetective },
   { levelId: "l3", order: 13, lesson: l3Review },
+  { levelId: "l4", order: 1, lesson: whyVersionControl },
+  { levelId: "l4", order: 2, lesson: startingRepo },
+  { levelId: "l4", order: 3, lesson: stagingChanges },
+  { levelId: "l4", order: 4, lesson: firstCommit },
+  { levelId: "l4", order: 5, lesson: makingChanges },
+  { levelId: "l4", order: 6, lesson: viewingHistory },
+  { levelId: "l4", order: 7, lesson: seeingDifferences },
+  { levelId: "l4", order: 8, lesson: undoingChanges },
+  { levelId: "l4", order: 9, lesson: understandingGithub },
+  { levelId: "l4", order: 10, lesson: pushingToGithub },
+  { levelId: "l4", order: 11, lesson: downloadingProjects },
+  { levelId: "l4", order: 12, lesson: creatingBranches },
+  { levelId: "l4", order: 13, lesson: mergingBranches },
+  { levelId: "l4", order: 14, lesson: professionalWorkflow },
+  { levelId: "l4", order: 15, lesson: writingGoodCommits },
+  { levelId: "l4", order: 16, lesson: fullWorkflowChallenge },
+  { levelId: "l4", order: 17, lesson: l4Review },
 ];

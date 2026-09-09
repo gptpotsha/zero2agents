@@ -1,4 +1,5 @@
 import { VirtualFileSystem, displayPath } from "./vfs";
+import { GitState } from "./git";
 
 export interface TermLine {
   text: string;
@@ -77,11 +78,13 @@ export function parseShell(raw: string): ParsedCommand {
   return { argv, redirectFile, append: parsed_append };
 }
 
-export type CommandContext = { vfs: VirtualFileSystem; log: string[] };
+export type CommandContext = { vfs: VirtualFileSystem; log: string[]; git?: GitState };
 
 /** Выполняет команду, возвращает строки вывода/ошибок и применённый редирект. */
 export function executeCommand(raw: string, ctx: CommandContext): TermLine[] {
-  const { vfs } = ctx;
+  const { vfs, git } = ctx;
+  // git доступен и без явного состояния — лениво создаём привязанный к текущей ФС
+  const gitState = git ?? ((ctx as { __git?: GitState }).__git ??= new GitState(vfs));
   let parsed: ParsedCommand;
   try {
     parsed = parseShell(raw);
@@ -224,8 +227,70 @@ export function executeCommand(raw: string, ctx: CommandContext): TermLine[] {
     case "whoami":
       out("you");
       break;
+    case "git": {
+      const sub = args[0];
+      const rest = args.slice(1).filter((a) => !a.startsWith("-"));
+      switch (sub) {
+        case "init": {
+          const res = gitState.init();
+          gitState.markDotGit();
+          out(`Initialized empty Git repository in ${vfs.cwd}/.git/`.replace(/\/home\/you/, "/home/you"));
+          break;
+        }
+        case "add": {
+          if (rest.length === 0) {
+            err("Nothing specified, nothing added.");
+            err("hint: Maybe you wanted to say 'git add .'?");
+            break;
+          }
+          const res = gitState.add(rest[0]);
+          if (!res.ok) err(res.message);
+          break;
+        }
+        case "commit": {
+          // git commit -m "сообщение"
+          const mIdx = args.indexOf("-m");
+          const message = mIdx !== -1 ? args[mIdx + 1] : undefined;
+          if (!message) {
+            err('Aborting commit due to empty commit message: укажи -m "текст"');
+            break;
+          }
+          const res = gitState.commit(message);
+          if (!res.ok) err(res.message);
+          else res.message.split("\n").forEach(out);
+          break;
+        }
+        case "status":
+          gitState.status().forEach((l) => (l === "" ? out("") : out(l)));
+          break;
+        case "log":
+          gitState.log().forEach((l) => out(l));
+          break;
+        case "branch": {
+          if (!gitState.isRepo) {
+            err("fatal: not a git repository (or any of the parent directories): .git");
+            break;
+          }
+          out(`* ${gitState.branch}`);
+          break;
+        }
+        case "diff":
+        case "remote":
+        case "push":
+        case "pull":
+        case "clone":
+          err(`git ${sub}: пока не поддерживается в тренажёре (этот уровень — про локальный git)`);
+          break;
+        case undefined:
+          err("usage: git [--version] <command> [<args>]");
+          break;
+        default:
+          err(`git: '${sub}' is not a git command. See 'git --help'.`);
+      }
+      break;
+    }
     case "help":
-      out("Доступные команды: pwd, ls [-a], cd <папка>, cat <файл>, echo <текст> [> файл], mkdir [-p] <папка>, touch <файл>, rm <путь>, cp <источник> <назначение>, mv <источник> <назначение>, whoami, clear");
+      out("Доступные команды: pwd, ls [-a], cd <папка>, cat <файл>, echo <текст> [> файл], mkdir [-p] <папка>, touch <файл>, rm <путь>, cp <источник> <назначение>, mv <источник> <назначение>, git init/add/commit/status/log, whoami, clear");
       break;
     default:
       err(`bash: ${cmd}: команда не найдена (набери help)`.trim());

@@ -1,4 +1,5 @@
 import { VirtualFileSystem } from "./vfs";
+import { GitState } from "./git";
 import type { TerminalGoal } from "@/lib/content/types";
 
 export interface SessionLog {
@@ -15,18 +16,26 @@ export interface GoalEval {
 
 const normalize = (s: string) => s.trim().replace(/\s+/g, " ");
 
-/** Переоценивает все цели по текущему состоянию VFS и логу команд. */
+/** Переоценивает все цели по текущему состоянию VFS/Git и логу команд. */
 export function evaluateGoals(
   vfs: VirtualFileSystem,
   log: SessionLog,
   goals: TerminalGoal[],
   baseCwd: string,
+  git?: GitState,
 ): GoalEval {
-  const solved = goals.map((goal) => isGoalSolved(vfs, log, goal, baseCwd));
+  const gitState = git ?? new GitState(vfs);
+  const solved = goals.map((goal) => isGoalSolved(vfs, log, goal, baseCwd, gitState));
   return { solved, done: solved.every(Boolean) };
 }
 
-function isGoalSolved(vfs: VirtualFileSystem, log: SessionLog, goal: TerminalGoal, baseCwd: string): boolean {
+function isGoalSolved(
+  vfs: VirtualFileSystem,
+  log: SessionLog,
+  goal: TerminalGoal,
+  baseCwd: string,
+  git: GitState,
+): boolean {
   switch (goal.kind) {
     case "run":
       return log.commands.includes(normalize(goal.match));
@@ -46,6 +55,21 @@ function isGoalSolved(vfs: VirtualFileSystem, log: SessionLog, goal: TerminalGoa
       }
       return true;
     }
+    case "git": {
+      switch (goal.state) {
+        case "repo":
+          return git.isRepo;
+        case "clean":
+          return git.isRepo && git.isClean();
+        case "committed":
+          return git.isRepo && git.isClean() && git.commitCount > 0;
+        case "has-commits":
+          return git.isRepo && git.commitCount >= 1;
+        case "message":
+          return git.isRepo && git.lastCommitMessage() === goal.message;
+      }
+      return false;
+    }
   }
 }
 
@@ -60,6 +84,21 @@ export function goalHint(goal: TerminalGoal): string {
       const a = goal.assert;
       const action = a.exists === false ? "удалить" : a.isDir ? "создать папку" : "создать файл";
       return `${action}: ${a.path}`;
+    }
+    case "git": {
+      switch (goal.state) {
+        case "repo":
+          return "инициализировать git-репозиторий (git init)";
+        case "clean":
+          return "рабочее дерево чистое — всё закоммичено";
+        case "committed":
+          return "сделать коммит (git add + git commit -m)";
+        case "has-commits":
+          return "сделать хотя бы один коммит";
+        case "message":
+          return `сделать коммит с сообщением «${goal.message}»`;
+      }
+      return "git-цель";
     }
   }
 }

@@ -6,6 +6,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { Button } from "@/components/ui/button";
 import { VirtualFileSystem, displayPath } from "@/lib/terminal/vfs";
+import { GitState } from "@/lib/terminal/git";
 import { executeCommand } from "@/lib/terminal/commands";
 import type { Fixture } from "@/lib/content/types";
 
@@ -38,6 +39,7 @@ export function PracticeTerminal() {
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   const vfsRef = useRef<VirtualFileSystem | null>(null);
+  const gitRef = useRef<GitState | null>(null);
   const lineRef = useRef("");
   const historyRef = useRef<string[]>([]);
   const historyIdxRef = useRef(-1);
@@ -73,7 +75,7 @@ export function PracticeTerminal() {
       setCommandCount((c) => c + 1);
       return;
     }
-    const lines = executeCommand(command, { vfs, log: [] });
+    const lines = executeCommand(command, { vfs, log: [], git: gitRef.current ?? undefined });
     for (const line of lines) {
       if (line.tone === "err") term.writeln(`\x1b[31m${line.text}\x1b[0m`);
       else term.writeln(line.text);
@@ -111,6 +113,7 @@ export function PracticeTerminal() {
     fitRef.current = fit;
 
     vfsRef.current = new VirtualFileSystem(DEFAULT_FIXTURE);
+    gitRef.current = new GitState(vfsRef.current);
     lineRef.current = "";
     historyRef.current = [];
     historyIdxRef.current = -1;

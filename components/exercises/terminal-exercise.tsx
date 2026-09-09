@@ -6,6 +6,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { Button } from "@/components/ui/button";
 import { VirtualFileSystem, displayPath, HOME } from "@/lib/terminal/vfs";
+import { GitState } from "@/lib/terminal/git";
 import { executeCommand } from "@/lib/terminal/commands";
 import { evaluateGoals, goalHint, type GoalEval } from "@/lib/terminal/goals";
 import type { terminalExerciseSchema } from "@/lib/content/types";
@@ -39,6 +40,7 @@ export function TerminalExercise({
   const [progress, setProgress] = useState<boolean[]>(() => exercise.goals.map(() => false));
 
   const baseCwdRef = useRef(HOME);
+  const gitRef = useRef<GitState | null>(null);
 
   const printPrompt = useCallback(() => {
     const term = termRef.current;
@@ -50,7 +52,7 @@ export function TerminalExercise({
   const reEvaluate = useCallback(() => {
     const vfs = vfsRef.current;
     if (!vfs) return;
-    const evalResult: GoalEval = evaluateGoals(vfs, logRef.current, exercise.goals, baseCwdRef.current);
+    const evalResult: GoalEval = evaluateGoals(vfs, logRef.current, exercise.goals, baseCwdRef.current, gitRef.current ?? undefined);
     setProgress(evalResult.solved);
     if (evalResult.done && !doneRef.current) {
       doneRef.current = true;
@@ -75,7 +77,7 @@ export function TerminalExercise({
       return;
     }
     const command = raw.trim();
-    const lines = executeCommand(command, { vfs, log: [] });
+    const lines = executeCommand(command, { vfs, log: [], git: gitRef.current ?? undefined });
     const isClear = command.split(/\s+/)[0] === "clear";
     if (isClear) {
       term.clear();
@@ -122,6 +124,7 @@ export function TerminalExercise({
     const fixture = exercise.fixture;
     const vfs = new VirtualFileSystem(fixture);
     vfsRef.current = vfs;
+    gitRef.current = new GitState(vfs);
     baseCwdRef.current = vfs.cwd;
     logRef.current = { commands: [], output: "" };
     doneRef.current = false;
