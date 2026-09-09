@@ -153,7 +153,7 @@ function splitPipes(raw: string): string[] {
     const ch = raw[i];
     if (quote) {
       if (ch === quote) quote = null;
-      else current += ch;
+      current += ch; // кавычки сохраняем — parseShell сам их разберёт
       continue;
     }
     if (ch === "'" || ch === '"') {
