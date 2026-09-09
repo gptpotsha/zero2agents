@@ -64,6 +64,26 @@ import { lesson as firstConversation } from "./lessons/l8/first-conversation/les
 import { lesson as agentReadsProject } from "./lessons/l8/agent-reads-project/lesson";
 import { lesson as askingEffectively } from "./lessons/l8/asking-effectively/lesson";
 import { lesson as l8Review } from "./lessons/l8/l8-review/lesson";
+import { lesson as whatAreSkills } from "./lessons/l9/what-are-skills/lesson";
+import { lesson as skillFile } from "./lessons/l9/skill-file/lesson";
+import { lesson as writingSkill } from "./lessons/l9/writing-skill/lesson";
+import { lesson as skillOrganization } from "./lessons/l9/skill-organization/lesson";
+import { lesson as l9Review } from "./lessons/l9/l9-review/lesson";
+import { lesson as whatIsMcp } from "./lessons/l10/what-is-mcp/lesson";
+import { lesson as mcpServers } from "./lessons/l10/mcp-servers/lesson";
+import { lesson as mcpConfig } from "./lessons/l10/mcp-config/lesson";
+import { lesson as mcpSafety } from "./lessons/l10/mcp-safety/lesson";
+import { lesson as l10Review } from "./lessons/l10/l10-review/lesson";
+import { lesson as contextWindow } from "./lessons/l11/context-window/lesson";
+import { lesson as projectInstructions } from "./lessons/l11/project-instructions/lesson";
+import { lesson as writingProjectInstructions } from "./lessons/l11/writing-project-instructions/lesson";
+import { lesson as contextManagement } from "./lessons/l11/context-management/lesson";
+import { lesson as l11Review } from "./lessons/l11/l11-review/lesson";
+import { lesson as subagents } from "./lessons/l12/subagents/lesson";
+import { lesson as gitWorktrees } from "./lessons/l12/git-worktrees/lesson";
+import { lesson as costControl } from "./lessons/l12/cost-control/lesson";
+import { lesson as headlessAutomation } from "./lessons/l12/headless-automation/lesson";
+import { lesson as l12Review } from "./lessons/l12/l12-review/lesson";
 
 /** Мета уровней. Уровни добавляются по мере наполнения контентом (см. план: Ф1). */
 export const LEVELS: LevelMeta[] = [
@@ -172,6 +192,58 @@ export const LEVELS: LevelMeta[] = [
       { cmd: "git log", description: "Агент читает и историю проекта" },
     ],
   },
+  {
+    id: "l9",
+    order: 9,
+    title: "Навыки агента",
+    subtitle: "Научи {{agent.name}} своим процессам — один раз и навсегда",
+    scope: "agent",
+    cheatSheet: [
+      { cmd: "SKILL.md", description: "Файл навыка: name + description + инструкции" },
+      { cmd: "description — дверь", description: "Агент решает открыть навык по описанию" },
+      { cmd: "личные vs проектные", description: "Свои привычки — себе; процессы команды — в репо" },
+      { cmd: "git — версионирование навыков", description: "Навыки в репо = история и шаринг" },
+    ],
+  },
+  {
+    id: "l10",
+    order: 10,
+    title: "MCP: подключаем всё",
+    subtitle: "Стандартные разъёмы агента: файлы, git, браузер, базы данных",
+    scope: "agent",
+    cheatSheet: [
+      { cmd: "MCP", description: "Model Context Protocol — USB-порт для AI-агентов" },
+      { cmd: "mcpServers", description: "Ключ конфига со списком подключённых серверов" },
+      { cmd: "command + args", description: "Как запускается MCP-сервер" },
+      { cmd: "наименьшие привилегии", description: "Давай агенту минимум прав, необходимых задаче" },
+    ],
+  },
+  {
+    id: "l11",
+    order: 11,
+    title: "Контекст — это всё",
+    subtitle: "Окно контекста, память проекта и управление сессиями",
+    scope: "agent",
+    cheatSheet: [
+      { cmd: "окно контекста", description: "Всё, что агент «видит» прямо сейчас; ограничено" },
+      { cmd: "файл инструкций", description: "CLAUDE.md / AGENTS.md — правила и команды проекта" },
+      { cmd: "/clear", description: "Сбросить сессию, когда контекст замусорен" },
+      { cmd: "перечитай с диска", description: "Забылось? Информация на диске никуда не делась" },
+    ],
+  },
+  {
+    id: "l12",
+    order: 12,
+    title: "Продвинутые приёмы",
+    subtitle: "Субагенты, worktrees, расходы и автономные пайплайны",
+    scope: "agent",
+    cheatSheet: [
+      { cmd: "субагент", description: "Параллельная задача с чистым контекстом" },
+      { cmd: "git worktree", description: "Несколько рабочих копий одного репо" },
+      { cmd: "маленькие задачи", description: "Контроль расходов: точечные запросы вместо гигантских" },
+      { cmd: "headless-режим", description: "Агент внутри скриптов и CI без человека" },
+    ],
+  },
 ];
 
 /** Плоский список: какой урок лежит в каком уровне и в каком порядке. */
@@ -243,4 +315,24 @@ export const LESSON_DEFS: LessonDef[] = [
   { levelId: "l8", order: 3, lesson: agentReadsProject },
   { levelId: "l8", order: 4, lesson: askingEffectively },
   { levelId: "l8", order: 5, lesson: l8Review },
+  { levelId: "l9", order: 1, lesson: whatAreSkills },
+  { levelId: "l9", order: 2, lesson: skillFile },
+  { levelId: "l9", order: 3, lesson: writingSkill },
+  { levelId: "l9", order: 4, lesson: skillOrganization },
+  { levelId: "l9", order: 5, lesson: l9Review },
+  { levelId: "l10", order: 1, lesson: whatIsMcp },
+  { levelId: "l10", order: 2, lesson: mcpServers },
+  { levelId: "l10", order: 3, lesson: mcpConfig },
+  { levelId: "l10", order: 4, lesson: mcpSafety },
+  { levelId: "l10", order: 5, lesson: l10Review },
+  { levelId: "l11", order: 1, lesson: contextWindow },
+  { levelId: "l11", order: 2, lesson: projectInstructions },
+  { levelId: "l11", order: 3, lesson: writingProjectInstructions },
+  { levelId: "l11", order: 4, lesson: contextManagement },
+  { levelId: "l11", order: 5, lesson: l11Review },
+  { levelId: "l12", order: 1, lesson: subagents },
+  { levelId: "l12", order: 2, lesson: gitWorktrees },
+  { levelId: "l12", order: 3, lesson: costControl },
+  { levelId: "l12", order: 4, lesson: headlessAutomation },
+  { levelId: "l12", order: 5, lesson: l12Review },
 ];
