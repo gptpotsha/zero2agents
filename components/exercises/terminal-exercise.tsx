@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { VirtualFileSystem, displayPath, HOME } from "@/lib/terminal/vfs";
 import { GitState } from "@/lib/terminal/git";
 import { executeCommand } from "@/lib/terminal/commands";
-import { evaluateGoals, goalHint, type GoalEval } from "@/lib/terminal/goals";
+import { evaluateGoals, pendingGoalHints, goalHint, type GoalEval } from "@/lib/terminal/goals";
 import type { terminalExerciseSchema } from "@/lib/content/types";
 import type { z } from "zod";
 
@@ -41,6 +41,8 @@ export function TerminalExercise({
 
   const baseCwdRef = useRef(HOME);
   const gitRef = useRef<GitState | null>(null);
+  const lastProgressRef = useRef(0);
+  const noProgressRef = useRef(0);
 
   const printPrompt = useCallback(() => {
     const term = termRef.current;
@@ -54,6 +56,22 @@ export function TerminalExercise({
     if (!vfs) return;
     const evalResult: GoalEval = evaluateGoals(vfs, logRef.current, exercise.goals, baseCwdRef.current, gitRef.current ?? undefined);
     setProgress(evalResult.solved);
+
+    // Мягкая подсказка: 3 команды подряд без нового прогресса
+    const solvedCount = evalResult.solved.filter(Boolean).length;
+    if (solvedCount > lastProgressRef.current) {
+      lastProgressRef.current = solvedCount;
+      noProgressRef.current = 0;
+    } else if (!evalResult.done) {
+      noProgressRef.current += 1;
+      if (noProgressRef.current === 3) {
+        const hints = pendingGoalHints(exercise.goals, evalResult.solved);
+        termRef.current?.write(
+          `\r\n\x1b[33mПодсказка: похоже, что-то не сходится. Осталось:${hints.map((h) => `\r\n  · ${h}`).join("")}\x1b[0m\r\n`,
+        );
+      }
+    }
+
     if (evalResult.done && !doneRef.current) {
       doneRef.current = true;
       setSolved(true);
@@ -127,6 +145,8 @@ export function TerminalExercise({
     gitRef.current = new GitState(vfs);
     baseCwdRef.current = vfs.cwd;
     logRef.current = { commands: [], output: "" };
+    lastProgressRef.current = 0;
+    noProgressRef.current = 0;
     doneRef.current = false;
     lineRef.current = "";
     historyRef.current = [];

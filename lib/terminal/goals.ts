@@ -102,3 +102,13 @@ export function goalHint(goal: TerminalGoal): string {
     }
   }
 }
+
+/**
+ * Мягкая подсказка: список незакрытых целей. Показывается UI-ом,
+ * когда ученик несколько команд подряд не двигает прогресс.
+ */
+export function pendingGoalHints(goals: TerminalGoal[], solved: boolean[]): string[] {
+  return goals
+    .map((g, i) => (solved[i] ? null : goalHint(g)))
+    .filter((h): h is string => h !== null);
+}
