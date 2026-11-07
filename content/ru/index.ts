@@ -84,6 +84,28 @@ import { lesson as gitWorktrees } from "./lessons/l12/git-worktrees/lesson";
 import { lesson as costControl } from "./lessons/l12/cost-control/lesson";
 import { lesson as headlessAutomation } from "./lessons/l12/headless-automation/lesson";
 import { lesson as l12Review } from "./lessons/l12/l12-review/lesson";
+import { lesson as debuggingMindset } from "./lessons/l13/debugging-mindset/lesson";
+import { lesson as agentAssistedDebugging } from "./lessons/l13/agent-assisted-debugging/lesson";
+import { lesson as readingErrors } from "./lessons/l13/reading-errors/lesson";
+import { lesson as rubberDuck } from "./lessons/l13/rubber-duck/lesson";
+import { lesson as agentAsReviewer } from "./lessons/l13/agent-as-reviewer/lesson";
+import { lesson as smallCommits } from "./lessons/l13/small-commits/lesson";
+import { lesson as writingTestsFirst } from "./lessons/l13/writing-tests-first/lesson";
+import { lesson as agentWritesTests } from "./lessons/l13/agent-writes-tests/lesson";
+import { lesson as understandingDeployment } from "./lessons/l13/understanding-deployment/lesson";
+import { lesson as agentAndDeployment } from "./lessons/l13/agent-and-deployment/lesson";
+import { lesson as askingForHelp } from "./lessons/l13/asking-for-help/lesson";
+import { lesson as l13Review } from "./lessons/l13/l13-review/lesson";
+import { lesson as projectOverview } from "./lessons/l14/project-overview/lesson";
+import { lesson as projectSetup } from "./lessons/l14/project-setup/lesson";
+import { lesson as agentScaffoldsServer } from "./lessons/l14/agent-scaffolds-server/lesson";
+import { lesson as gameLogic } from "./lessons/l14/game-logic/lesson";
+import { lesson as frontendPage } from "./lessons/l14/frontend-page/lesson";
+import { lesson as websocketConnection } from "./lessons/l14/websocket-connection/lesson";
+import { lesson as connectingFrontend } from "./lessons/l14/connecting-frontend/lesson";
+import { lesson as testingWithPeople } from "./lessons/l14/testing-with-people/lesson";
+import { lesson as deployingGame } from "./lessons/l14/deploying-game/lesson";
+import { lesson as l14Review } from "./lessons/l14/l14-review/lesson";
 
 /** Мета уровней. Уровни добавляются по мере наполнения контентом (см. план: Ф1). */
 export const LEVELS: LevelMeta[] = [
@@ -244,6 +266,36 @@ export const LEVELS: LevelMeta[] = [
       { cmd: "headless-режим", description: "Агент внутри скриптов и CI без человека" },
     ],
   },
+  {
+    id: "l13",
+    order: 13,
+    title: "Паттерны junior-разработчика",
+    subtitle: "Отладка, тесты, маленькие коммиты и культура работы с агентом",
+    scope: "agent",
+    cheatSheet: [
+      { cmd: "уточка (rubber duck)", description: "Проговори проблему вслух — часто решение станет очевидным" },
+      { cmd: "воспроизведи баг", description: "Первый шаг отладки: добейся стабильного падения" },
+      { cmd: "агент-ревьюер", description: "Попроси агента найти краевые случаи и потенциальные баги" },
+      { cmd: "тест перед кодом", description: "Опиши ожидаемое поведение тестом до реализации" },
+      { cmd: "маленькие коммиты", description: "Одно логическое изменение на коммит — проще искать ошибки" },
+      { cmd: "формула вопроса", description: "Что ожидал + что получил + что уже пробовал + логи" },
+    ],
+  },
+  {
+    id: "l14",
+    order: 14,
+    title: "Проект: веб-игра крестики-нолики",
+    subtitle: "Создаём и деплоим мультиплеерную игру от идеи до продакшена",
+    scope: "agent",
+    cheatSheet: [
+      { cmd: "npm init -y", description: "Инициализировать новый проект Node.js" },
+      { cmd: "npm install ws", description: "Установить библиотеку для WebSocket" },
+      { cmd: "node server.js", description: "Запустить сервер игры" },
+      { cmd: "WebSocket", description: "Постоянное двустороннее соединение между клиентом и сервером" },
+      { cmd: "деплой (Render / Fly.io)", description: "Публикация проекта в интернет для игроков" },
+      { cmd: "чек-лист релиза", description: "Проверка ошибок, адаптивность, тесты на реальных игроках" },
+    ],
+  },
 ];
 
 /** Плоский список: какой урок лежит в каком уровне и в каком порядке. */
@@ -335,4 +387,26 @@ export const LESSON_DEFS: LessonDef[] = [
   { levelId: "l12", order: 3, lesson: costControl },
   { levelId: "l12", order: 4, lesson: headlessAutomation },
   { levelId: "l12", order: 5, lesson: l12Review },
+  { levelId: "l13", order: 1, lesson: debuggingMindset },
+  { levelId: "l13", order: 2, lesson: agentAssistedDebugging },
+  { levelId: "l13", order: 3, lesson: readingErrors },
+  { levelId: "l13", order: 4, lesson: rubberDuck },
+  { levelId: "l13", order: 5, lesson: agentAsReviewer },
+  { levelId: "l13", order: 6, lesson: smallCommits },
+  { levelId: "l13", order: 7, lesson: writingTestsFirst },
+  { levelId: "l13", order: 8, lesson: agentWritesTests },
+  { levelId: "l13", order: 9, lesson: understandingDeployment },
+  { levelId: "l13", order: 10, lesson: agentAndDeployment },
+  { levelId: "l13", order: 11, lesson: askingForHelp },
+  { levelId: "l13", order: 12, lesson: l13Review },
+  { levelId: "l14", order: 1, lesson: projectOverview },
+  { levelId: "l14", order: 2, lesson: projectSetup },
+  { levelId: "l14", order: 3, lesson: agentScaffoldsServer },
+  { levelId: "l14", order: 4, lesson: gameLogic },
+  { levelId: "l14", order: 5, lesson: frontendPage },
+  { levelId: "l14", order: 6, lesson: websocketConnection },
+  { levelId: "l14", order: 7, lesson: connectingFrontend },
+  { levelId: "l14", order: 8, lesson: testingWithPeople },
+  { levelId: "l14", order: 9, lesson: deployingGame },
+  { levelId: "l14", order: 10, lesson: l14Review },
 ];

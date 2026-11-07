@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResetProgressButton } from "@/components/settings/reset-progress-button";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { TrackPicker } from "@/components/settings/track-picker";
+import { RolePicker } from "@/components/dashboard/role-picker";
 import { getSessionUser } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
 import { eq } from "drizzle-orm";
@@ -14,7 +15,7 @@ export default async function SettingsPage() {
   if (!user) return null; // (app)/layout редиректит на /login
 
   const row = getDb()
-    .select({ track_id: schema.users.track_id })
+    .select({ track_id: schema.users.track_id, role_id: schema.users.role_id })
     .from(schema.users)
     .where(eq(schema.users.id, user.id))
     .get();
@@ -27,6 +28,18 @@ export default async function SettingsPage() {
       </p>
 
       <div className="mt-8 space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Твоя цель и роль (AI-план)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-sm text-muted-foreground">
+              План обучения подсвечивает уровни в зависимости от твоей текущей роли и целей.
+            </p>
+            <RolePicker currentRoleId={row?.role_id ?? null} />
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Твой AI-агент</CardTitle>

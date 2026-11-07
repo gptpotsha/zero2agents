@@ -7,7 +7,7 @@ export type LessonNotFound = null;
 type Scope = LessonContent["meta"]["scope"];
 
 let baseCache: { lessons: RegisteredLesson[]; byKey: Map<string, RegisteredLesson> } | undefined;
-let compiledCache = new Map<string, RegisteredLesson>();
+const compiledCache = new Map<string, RegisteredLesson>();
 
 /**
  * Базовый реестр (без трек-подстановки) — собирается и валидируется один раз.

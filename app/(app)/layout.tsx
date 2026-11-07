@@ -32,6 +32,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 🏆 Достижения
               </Link>
               <Link
+                href="/notes"
+                className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+              >
+                📝 Заметки
+              </Link>
+              <Link
                 href="/practice"
                 className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
               >

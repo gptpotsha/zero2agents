@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { BlockViewer } from "@/components/course/block-viewer";
 import { QuizExercise } from "@/components/exercises/quiz-exercise";
 import { FillBlankExercise } from "@/components/exercises/fill-blank-exercise";
 import { TerminalExercise } from "@/components/exercises/terminal-exercise";
+import { ExploreExercise } from "@/components/exercises/explore-exercise";
 import { completeLesson, saveLessonStep } from "@/app/actions/progress";
 import type { Step, Exercise } from "@/lib/content/types";
 
@@ -35,6 +36,8 @@ function ExerciseView({ exercise, onSolved }: { exercise: Exercise; onSolved: ()
       return <FillBlankExercise exercise={exercise} onSolved={onSolved} />;
     case "terminal":
       return <TerminalExercise exercise={exercise} onSolved={onSolved} />;
+    case "explore":
+      return <ExploreExercise exercise={exercise} onSolved={onSolved} />;
     default:
       return <p className="text-sm text-destructive">Неизвестный тип упражнения.</p>;
   }
@@ -53,7 +56,10 @@ export function LessonPlayer({
   const [doneCount, setDoneCount] = useState(startDone);
   const [finale, setFinale] = useState(isCompleted);
   // Время прохождения: от монтирования до финального шага (для завершённого заранее — не показываем).
-  const [startedAt] = useState(() => Date.now());
+  const startedAtRef = useRef<number>(0);
+  useEffect(() => {
+    startedAtRef.current = Date.now();
+  }, []);
   const [elapsedSec, setElapsedSec] = useState<number | null>(null);
 
   const activeIdx = useMemo(() => Math.min(doneCount, steps.length), [doneCount, steps.length]);
@@ -69,11 +75,13 @@ export function LessonPlayer({
     [levelId, slug],
   );
 
-  const advance = (idx: number) => {
+  const advance = useCallback(
+    (idx: number) => {
     const isLast = idx === steps.length - 1;
     if (isLast) {
       setDoneCount(steps.length);
-      setElapsedSec(Math.max(1, Math.round((Date.now() - startedAt) / 1000)));
+        const started = startedAtRef.current || Date.now();
+        setElapsedSec(Math.max(1, Math.round((Date.now() - started) / 1000)));
       setFinale(true);
     } else {
       setDoneCount(idx + 1);
@@ -82,7 +90,9 @@ export function LessonPlayer({
       });
     }
     void persist(idx, isLast);
-  };
+    },
+    [steps.length, persist],
+  );
 
   const completePercentage = Math.round((doneCount / steps.length) * 100);
 

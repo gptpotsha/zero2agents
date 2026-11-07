@@ -366,7 +366,7 @@ function runSingleCommand(cmd: string, args: string[], ctx: StageCtx): void {
       const rest = args.slice(1).filter((a) => !a.startsWith("-"));
       switch (sub) {
         case "init": {
-          const res = git.init();
+          git.init();
           git.markDotGit();
           out(`Initialized empty Git repository in ${vfs.cwd}/.git/`.replace(/\/home\/you/, "/home/you"));
           break;

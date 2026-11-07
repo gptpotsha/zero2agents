@@ -4,12 +4,15 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdSlot } from "@/components/monetization/AdSlot";
 import { CheatSheetButton } from "@/components/course/cheat-sheet-button";
+import { TestOutButton } from "@/components/course/test-out-button";
 import { ActivityHeatmap } from "@/components/dashboard/activity-heatmap";
+import { OnboardingCard } from "@/components/dashboard/onboarding-card";
 import { computeStreak } from "@/server/streaks";
 import { eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/session";
 import { listLevels } from "@/lib/content/registry";
+import { getLevelImportance } from "@/lib/content/plan";
 
 export const metadata = { title: "Мои уроки" };
 
@@ -32,6 +35,13 @@ export default async function DashboardPage() {
     rows.map((r) => [r.lesson_id, { status: r.status, currentStepIdx: r.current_step_idx, completedAt: r.completed_at }]),
   );
 
+  const userRow = db
+    .select({ role_id: schema.users.role_id })
+    .from(schema.users)
+    .where(eq(schema.users.id, user.id))
+    .get();
+  const roleId = userRow?.role_id ?? null;
+
   const levels = listLevels();
   const totalLessons = levels.reduce((acc, l) => acc + l.lessons.length, 0);
   const completedCount = levels.reduce(
@@ -40,6 +50,21 @@ export default async function DashboardPage() {
       l.lessons.filter((lesson) => progress.get(`${lesson.levelId}/${lesson.meta.slug}`)?.status === "completed").length,
     0,
   );
+
+  // Считаем прогресс по приоритетным урокам для роли
+  let completedPriority = 0;
+  let totalPriority = 0;
+  for (const level of levels) {
+    const importance = getLevelImportance(roleId, level.id);
+    if (importance === "priority") {
+      totalPriority += level.lessons.length;
+      for (const lesson of level.lessons) {
+        if (progress.get(`${lesson.levelId}/${lesson.meta.slug}`)?.status === "completed") {
+          completedPriority++;
+        }
+      }
+    }
+  }
 
   // Карточка «Продолжить обучение»: первый урок, который не пройден до конца.
   const flat = levels.flatMap((level) =>
@@ -58,6 +83,15 @@ export default async function DashboardPage() {
     <main className="mx-auto w-full max-w-5xl px-4 py-8">
       <h1 className="text-2xl font-bold">Привет, {user.username}!</h1>
       <p className="mt-1 text-muted-foreground">Продолжай учиться — по одному шагу за раз.</p>
+
+      {/* AI-онбординг и персонализация маршрута («My Plan») */}
+      <div className="mt-6">
+        <OnboardingCard
+          currentRoleId={roleId}
+          completedPriorityLessons={completedPriority}
+          totalPriorityLessons={totalPriority}
+        />
+      </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <Card>
@@ -166,60 +200,89 @@ export default async function DashboardPage() {
       )}
 
       <div className="mt-10 space-y-10">
-        {levels.map((level) => (
-          <section key={level.id}>
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <div>
-                <h2 className="text-xl font-bold">Уровень {level.order}. {level.title}</h2>
-                <p className="mt-0.5 text-sm text-muted-foreground">{level.subtitle}</p>
+        {levels.map((level) => {
+          const importance = getLevelImportance(roleId, level.id);
+          const isLevelCompleted = level.lessons.every(
+            (l) => progress.get(`${l.levelId}/${l.meta.slug}`)?.status === "completed",
+          );
+
+          return (
+            <section key={level.id}>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold">Уровень {level.order}. {level.title}</h2>
+                    {importance === "priority" ? (
+                      <Badge className="bg-emerald-600/15 text-emerald-700 dark:text-emerald-400 border-emerald-600/20 text-xs">
+                        Обязательно
+                      </Badge>
+                    ) : importance === "useful" ? (
+                      <Badge variant="outline" className="text-amber-600 dark:text-amber-400 border-amber-600/30 text-xs">
+                        Полезно
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground border-dashed text-xs">
+                        Можно пропустить
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{level.subtitle}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <TestOutButton
+                    levelId={level.id}
+                    levelTitle={level.title}
+                    isCompleted={isLevelCompleted}
+                  />
+                  {level.cheatSheet && level.cheatSheet.length > 0 && (
+                    <CheatSheetButton levelTitle={level.title} items={level.cheatSheet} />
+                  )}
+                  <Badge variant="secondary">
+                    {level.scope === "agent" ? "🤖 агент" : "💻 фундамент"}
+                  </Badge>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                {level.cheatSheet && level.cheatSheet.length > 0 && (
-                  <CheatSheetButton levelTitle={level.title} items={level.cheatSheet} />
-                )}
-                <Badge variant="secondary">фундамент</Badge>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {level.lessons.map((lesson) => {
+                  const lessonId = `${lesson.levelId}/${lesson.meta.slug}`;
+                  const p = progress.get(lessonId);
+                  const isCompleted = p?.status === "completed";
+                  const isStarted = !!p && !isCompleted;
+                  return (
+                    <Card key={lessonId} className="flex flex-col">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-muted-foreground">Урок {lesson.order}</span>
+                          {isCompleted ? (
+                            <Badge className="bg-green-600/15 text-green-700 dark:text-green-400">пройден</Badge>
+                          ) : isStarted ? (
+                            <Badge variant="secondary">в процессе</Badge>
+                          ) : null}
+                        </div>
+                        <CardTitle className="text-base leading-snug">{lesson.meta.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex flex-1 flex-col gap-3 pt-0">
+                        <p className="line-clamp-2 flex-1 text-sm text-muted-foreground">{lesson.meta.goal}</p>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-muted-foreground">~{lesson.meta.minutes} мин</span>
+                          <Link
+                            href={`/learn/${lesson.levelId}/${lesson.meta.slug}`}
+                            className={buttonVariants({
+                              size: "sm",
+                              variant: isCompleted ? "outline" : isStarted ? "default" : "secondary",
+                            })}
+                          >
+                            {isCompleted ? "Повторить" : isStarted ? "Продолжить" : "Начать"}
+                          </Link>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {level.lessons.map((lesson) => {
-                const lessonId = `${lesson.levelId}/${lesson.meta.slug}`;
-                const p = progress.get(lessonId);
-                const isCompleted = p?.status === "completed";
-                const isStarted = !!p && !isCompleted;
-                return (
-                  <Card key={lessonId} className="flex flex-col">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs text-muted-foreground">Урок {lesson.order}</span>
-                        {isCompleted ? (
-                          <Badge className="bg-green-600/15 text-green-700 dark:text-green-400">пройден</Badge>
-                        ) : isStarted ? (
-                          <Badge variant="secondary">в процессе</Badge>
-                        ) : null}
-                      </div>
-                      <CardTitle className="text-base leading-snug">{lesson.meta.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-1 flex-col gap-3 pt-0">
-                      <p className="line-clamp-2 flex-1 text-sm text-muted-foreground">{lesson.meta.goal}</p>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs text-muted-foreground">~{lesson.meta.minutes} мин</span>
-                        <Link
-                          href={`/learn/${lesson.levelId}/${lesson.meta.slug}`}
-                          className={buttonVariants({
-                            size: "sm",
-                            variant: isCompleted ? "outline" : isStarted ? "default" : "secondary",
-                          })}
-                        >
-                          {isCompleted ? "Повторить" : isStarted ? "Продолжить" : "Начать"}
-                        </Link>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </section>
-        ))}
+            </section>
+          );
+        })}
       </div>
 
       <AdSlot placement="dashboard-sidebar" />

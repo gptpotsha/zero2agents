@@ -71,10 +71,20 @@ export const terminalExerciseSchema = z.object({
   goals: z.array(terminalGoalSchema).min(1),
 });
 
+export const exploreExerciseSchema = z.object({
+  type: z.literal("explore"),
+  task: z.string(),
+  explanation: z.string().optional(),
+  files: z.record(z.string(), z.string()),
+  initialPath: z.string().optional(),
+});
+export type ExploreExercise = z.infer<typeof exploreExerciseSchema>;
+
 export const exerciseSchema = z.discriminatedUnion("type", [
   quizExerciseSchema,
   fillBlankExerciseSchema,
   terminalExerciseSchema,
+  exploreExerciseSchema,
 ]);
 export type Exercise = z.infer<typeof exerciseSchema>;
 

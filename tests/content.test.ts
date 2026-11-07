@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { getRegistry } from "@/lib/content/registry";
 
 describe("реестр контента", () => {
@@ -52,6 +52,18 @@ describe("консистентность контента", () => {
         if (step.exercise?.type === "terminal") {
           expect(step.exercise.task.length).toBeGreaterThan(0);
           expect(step.exercise.goals.length).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
+  it("explore: у каждого задания есть task и хотя бы один файл", () => {
+    const { lessons } = getRegistry();
+    for (const lesson of lessons) {
+      for (const step of lesson.steps) {
+        if (step.exercise?.type === "explore") {
+          expect(step.exercise.task.length).toBeGreaterThan(0);
+          expect(Object.keys(step.exercise.files).length).toBeGreaterThan(0);
         }
       }
     }

@@ -9,6 +9,8 @@ export const users = sqliteTable("users", {
   role: text("role").notNull().default("user"), // free-план сегодня; задел под entitlements
   /** Выбранный агентский трек (claude-code | codex | gemini | ...) — null до выбора. */
   track_id: text("track_id"),
+  /** Роль для персонализации пути («My Plan»): developer | beginner | manager | designer | founder | ops */
+  role_id: text("role_id"),
   created_at: integer("created_at").notNull(),
 });
 
@@ -47,7 +49,7 @@ export const activityEvents = sqliteTable(
     user_id: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    type: text("type").notNull(), // lesson_completed | exercise_passed
+    type: text("type").notNull(), // lesson_completed | exercise_passed | level_tested_out
     payload: text("payload").notNull().default("{}"), // JSON
     created_at: integer("created_at").notNull(),
     /** Локальный день пользователя (YYYY-MM-DD) для streak-подсчёта. */
@@ -56,7 +58,43 @@ export const activityEvents = sqliteTable(
   (t) => [index("ae_user_date").on(t.user_id, t.event_date)],
 );
 
+/** Личные заметки пользователя к урокам. */
+export const notes = sqliteTable(
+  "notes",
+  {
+    id: text("id").primaryKey(),
+    user_id: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    lesson_id: text("lesson_id").notNull(),
+    content: text("content").notNull(),
+    created_at: integer("created_at").notNull(),
+    updated_at: integer("updated_at").notNull(),
+  },
+  (t) => [index("notes_user").on(t.user_id), index("notes_lesson").on(t.lesson_id)],
+);
+
+/** Комментарии и вопросы учеников к урокам. */
+export const lessonComments = sqliteTable(
+  "lesson_comments",
+  {
+    id: text("id").primaryKey(),
+    user_id: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    lesson_id: text("lesson_id").notNull(),
+    author_name: text("author_name").notNull(),
+    content: text("content").notNull(),
+    created_at: integer("created_at").notNull(),
+  },
+  (t) => [index("lc_lesson").on(t.lesson_id)],
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
 export type LessonProgress = typeof lessonProgress.$inferSelect;
+export type Note = typeof notes.$inferSelect;
+export type NewNote = typeof notes.$inferInsert;
+export type LessonComment = typeof lessonComments.$inferSelect;
+export type NewLessonComment = typeof lessonComments.$inferInsert;

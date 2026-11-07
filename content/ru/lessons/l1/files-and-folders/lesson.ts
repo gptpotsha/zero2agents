@@ -23,6 +23,23 @@ export const lesson: LessonContent = {
   ],
   steps: [
     {
+      id: "s0",
+      title: "Разминка: исследуй папки глазами",
+      content: [
+        { type: "p", text: "Прежде чем создавать файлы командами, посмотри, как папки вложены друг в друга. Открой все файлы в проводнике ниже, чтобы исследовать структуру." },
+      ],
+      exercise: {
+        type: "explore",
+        task: "Кликни по всем файлам в проводнике, чтобы изучить их содержимое и пути.",
+        files: {
+          "/Users/you/Desktop/todo.txt": "1. Выучить терминал\n2. Запустить первого AI-агента",
+          "/Users/you/Documents/resume.pdf": "[Резюме разработчика: навыки работы с AI-агентами]",
+          "/Users/you/projects/game/index.html": "<!DOCTYPE html>\n<html>\n  <body>\n    <h1>Моя игра</h1>\n  </body>\n</html>",
+          "/Users/you/projects/game/server.js": "console.log('Игровой сервер запущен на порту 3000');",
+        },
+      },
+    },
+    {
       id: "s1",
       title: "Создай папку и файл",
       content: [

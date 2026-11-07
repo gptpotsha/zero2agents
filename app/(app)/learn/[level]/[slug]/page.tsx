@@ -4,10 +4,14 @@ import { notFound } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { BlockViewer } from "@/components/course/block-viewer";
 import { LessonPlayer } from "@/components/course/lesson-player";
+import { LessonNotes } from "@/components/course/lesson-notes";
+import { LessonComments } from "@/components/course/lesson-comments";
 import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/session";
 import { getLesson, getLessonForTrack, listLevels } from "@/lib/content/registry";
+import { getLessonNote } from "@/app/actions/notes";
+import { getLessonComments } from "@/app/actions/comments";
 
 type Params = { params: Promise<{ level: string; slug: string }> };
 
@@ -55,6 +59,9 @@ export default async function LessonPage({ params }: Params) {
       ? level.lessons[idxInLevel + 1]
       : null;
 
+  const note = await getLessonNote(lessonId);
+  const comments = await getLessonComments(lessonId);
+
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6">
       <div className="mb-6 flex items-center justify-between gap-3">
@@ -97,6 +104,11 @@ export default async function LessonPage({ params }: Params) {
             : null
         }
       />
+
+      <div className="mt-8 space-y-4">
+        <LessonNotes lessonId={lessonId} initialNote={note?.content} />
+        <LessonComments lessonId={lessonId} initialComments={comments} />
+      </div>
     </main>
   );
 }
