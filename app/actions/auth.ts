@@ -66,7 +66,7 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
 
   const db = getDb();
   const user = db.select().from(schema.users).where(eq(schema.users.username, username.data)).get();
-  if (!user || !verifyPassword(password.data, user.pass_hash)) {
+  if (!user || !user.pass_hash || !verifyPassword(password.data, user.pass_hash)) {
     return { error: "Неверное имя или пароль" };
   }
 

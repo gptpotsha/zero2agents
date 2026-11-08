@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { TelegramAppBridge } from "@/components/telegram/telegram-app-bridge";
 
 export const metadata: Metadata = {
   title: {
@@ -17,9 +18,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ru" className="h-full antialiased dark" suppressHydrationWarning>
       <head>
+        <script src="https://telegram.org/js/telegram-web-app.js" async />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className="flex min-h-full flex-col bg-background text-foreground">{children}</body>
+      <body className="flex min-h-full flex-col bg-background text-foreground">
+        <TelegramAppBridge>{children}</TelegramAppBridge>
+      </body>
     </html>
   );
 }

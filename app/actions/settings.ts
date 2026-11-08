@@ -42,7 +42,7 @@ export async function changePasswordAction(_prev: SettingsState, formData: FormD
   const db = getDb();
   const user = db.select().from(schema.users).where(eq(schema.users.id, sessionUser.id)).get();
   if (!user) return { error: "Пользователь не найден." };
-  if (!verifyPassword(current, user.pass_hash)) {
+  if (!user.pass_hash || !verifyPassword(current, user.pass_hash)) {
     return { error: "Текущий пароль неверный." };
   }
   if (verifyPassword(next, user.pass_hash)) {
