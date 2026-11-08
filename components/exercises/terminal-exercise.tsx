@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
+import { QuickKeysBar } from "@/components/terminal/quick-keys-bar";
 import { Button } from "@/components/ui/button";
 import { VirtualFileSystem, displayPath, HOME } from "@/lib/terminal/vfs";
 import { GitState } from "@/lib/terminal/git";
@@ -34,6 +35,7 @@ export function TerminalExercise({
   const historyRef = useRef<string[]>([]);
   const historyIdxRef = useRef(-1);
   const doneRef = useRef(false);
+  const onDataRef = useRef<((data: string) => void) | null>(null);
 
   const [attempt, setAttempt] = useState(0);
   const [solved, setSolved] = useState(false);
@@ -75,6 +77,11 @@ export function TerminalExercise({
     if (evalResult.done && !doneRef.current) {
       doneRef.current = true;
       setSolved(true);
+      try {
+        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("success");
+      } catch {
+        // Игнорируем вне TMA
+      }
       termRef.current?.write("\r\n\x1b[1;32m✓ Задание выполнено!\x1b[0m\r\n");
       setTimeout(onSolved, 1100);
     }
@@ -219,6 +226,7 @@ export function TerminalExercise({
       termInstance.write(data);
     };
 
+    onDataRef.current = onData;
     term.onData(onData);
 
     const observer = new ResizeObserver(() => fitRef.current?.fit());
@@ -227,6 +235,7 @@ export function TerminalExercise({
     printPrompt();
 
     return () => {
+      onDataRef.current = null;
       observer.disconnect();
       term.dispose();
       termRef.current = null;
@@ -234,6 +243,13 @@ export function TerminalExercise({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt, exercise]);
+
+  const handleQuickKey = (key: string) => {
+    if (termRef.current && !doneRef.current) {
+      termRef.current.focus();
+      onDataRef.current?.(key);
+    }
+  };
 
   const reset = () => {
     setSolved(false);
@@ -272,6 +288,10 @@ export function TerminalExercise({
           Сбросить
         </Button>
       </div>
+
+      {/* Панель быстрых мобильных клавиш */}
+      <QuickKeysBar onKeyPress={handleQuickKey} />
+
       <div ref={containerRef} className="h-[340px] overflow-hidden rounded-lg" aria-label="Терминал-тренажёр" />
       {solved && (
         <p className="text-sm font-medium text-green-600 dark:text-green-400">

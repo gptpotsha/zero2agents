@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
+import { QuickKeysBar } from "@/components/terminal/quick-keys-bar";
 import { Button } from "@/components/ui/button";
 import { VirtualFileSystem, displayPath } from "@/lib/terminal/vfs";
 import { GitState } from "@/lib/terminal/git";
@@ -43,6 +44,7 @@ export function PracticeTerminal() {
   const lineRef = useRef("");
   const historyRef = useRef<string[]>([]);
   const historyIdxRef = useRef(-1);
+  const onDataRef = useRef<((data: string) => void) | null>(null);
 
   const [attempt, setAttempt] = useState(0);
   const [commandCount, setCommandCount] = useState(0);
@@ -171,6 +173,7 @@ export function PracticeTerminal() {
       lineRef.current += data;
       t.write(data);
     };
+    onDataRef.current = onData;
     term.onData(onData);
 
     const observer = new ResizeObserver(() => fitRef.current?.fit());
@@ -178,6 +181,7 @@ export function PracticeTerminal() {
     printPrompt();
 
     return () => {
+      onDataRef.current = null;
       observer.disconnect();
       term.dispose();
       termRef.current = null;
@@ -185,6 +189,13 @@ export function PracticeTerminal() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt]);
+
+  const handleQuickKey = (key: string) => {
+    if (termRef.current) {
+      termRef.current.focus();
+      onDataRef.current?.(key);
+    }
+  };
 
   const reset = () => setAttempt((a) => a + 1);
 
@@ -199,6 +210,7 @@ export function PracticeTerminal() {
             Сбросить среду
           </Button>
         </div>
+        <QuickKeysBar onKeyPress={handleQuickKey} />
         <div ref={containerRef} className="h-[420px] overflow-hidden rounded-lg" aria-label="Песочница терминала" />
       </div>
 
