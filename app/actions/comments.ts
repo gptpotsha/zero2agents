@@ -58,6 +58,19 @@ export async function addLessonCommentAction(
     })
     .run();
 
+  // Автоматически регистрируем тикет поддержки и шлем мгновенный пуш админам
+  try {
+    const { createSupportTicket } = await import("@/lib/support/tickets");
+    await createSupportTicket({
+      userId: user.id,
+      source: "lesson_player",
+      questionText: trimmed,
+      lessonId,
+    });
+  } catch (ticketErr) {
+    console.warn("[Comments Ticket Error]", ticketErr);
+  }
+
   revalidatePath(`/learn/${lessonId}`);
   return { ok: true };
 }

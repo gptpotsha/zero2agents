@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
 import { eq } from "drizzle-orm";
-import { getTelegramBot } from "@/server/telegram/bot";
+import { replyToSupportTicket } from "@/lib/support/tickets";
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,46 +28,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Missing fields" }, { status: 400 });
     }
 
-    const ticketWithUser = db
-      .select({
-        ticket: schema.supportTickets,
-        user: schema.users,
-      })
-      .from(schema.supportTickets)
-      .innerJoin(schema.users, eq(schema.supportTickets.user_id, schema.users.id))
-      .where(eq(schema.supportTickets.id, ticketId))
-      .get();
-
-    if (!ticketWithUser) {
-      return NextResponse.json({ ok: false, error: "Ticket not found" }, { status: 404 });
-    }
-
-    // Обновляем тикет
-    db.update(schema.supportTickets)
-      .set({
-        admin_reply: replyText,
-        status: "answered",
-        answered_at: Date.now(),
-        replied_via: ticketWithUser.user.telegram_id ? "telegram" : "web_comment",
-      })
-      .where(eq(schema.supportTickets.id, ticketId))
-      .run();
-
-    // Если у пользователя есть telegram_id — отправляем ответ прямо в бота
-    if (ticketWithUser.user.telegram_id) {
-      try {
-        const bot = getTelegramBot();
-        await bot.api.sendMessage(
-          ticketWithUser.user.telegram_id,
-          `✉️ **Ответ на твой вопрос:**\n\n` +
-            `_«${ticketWithUser.ticket.question_text}»_\n\n` +
-            `💬 **Ответ преподавателя:**\n${replyText}`,
-          { parse_mode: "Markdown" },
-        );
-      } catch (tgErr) {
-        console.warn("[Admin Reply TG Send Error]", tgErr);
-      }
-    }
+    await replyToSupportTicket({
+      ticketId,
+      replyText,
+      adminUserId: user.id,
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {

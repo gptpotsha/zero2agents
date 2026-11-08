@@ -7,7 +7,7 @@ import * as schema from "./schema";
 
 function resolveDbPath(): string {
   const p = process.env.DATABASE_PATH ?? "./data/app.db";
-  return path.isAbsolute(p) ? p : path.join(process.cwd(), p);
+  return path.isAbsolute(p) ? p : path.join(/*turbopackIgnore: true*/ process.cwd(), p);
 }
 
 let _db: BetterSQLite3Database<typeof schema> | undefined;

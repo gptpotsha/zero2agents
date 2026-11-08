@@ -356,6 +356,13 @@ export function getTelegramBot(): Bot {
       return;
     }
 
+    const subCommand = ctx.match?.trim().toLowerCase();
+    if (subCommand === "stats" || subCommand === "digest") {
+      const { sendAdminDailyDigest } = await import("@/server/telegram/scheduler");
+      await sendAdminDailyDigest();
+      return;
+    }
+
     const webAppUrl = process.env.NEXT_PUBLIC_APP_URL || "https://prochatbot.pro";
     const kb = new InlineKeyboard().webApp("🛠 Открыть Админ-панель", `${webAppUrl}/admin`);
 
@@ -364,6 +371,107 @@ export function getTelegramBot(): Bot {
         `Здесь ты можешь отслеживать приток пользователей, источники трафика, активность и отвечать на вопросы студентов.`,
       { parse_mode: "Markdown", reply_markup: kb },
     );
+  });
+
+  // Команда /ask для вопросов преподавателю от студентов
+  bot.command("ask", async (ctx) => {
+    const questionText = ctx.match?.trim();
+    const tgUser = ctx.from;
+    if (!tgUser) return;
+
+    if (!questionText) {
+      await ctx.reply(
+        `💬 **Как задать вопрос преподавателю:**\n\n` +
+          `Напиши команду и свой вопрос в одном сообщении, например:\n` +
+          `\`/ask Как настроить SSH ключ на сервере?\`\n\n` +
+          `Мы мгновенно перешлем вопрос автору, а его ответ придёт прямо сюда в чат!`,
+        { parse_mode: "Markdown" },
+      );
+      return;
+    }
+
+    const user = await getOrCreateTelegramUser({
+      id: tgUser.id,
+      username: tgUser.username,
+      first_name: tgUser.first_name,
+    });
+
+    const { createSupportTicket } = await import("@/lib/support/tickets");
+    await createSupportTicket({
+      userId: user.id,
+      source: "bot_question",
+      questionText,
+    });
+
+    await ctx.reply(
+      `📨 **Вопрос отправлен автору платформы!**\n\n` +
+        `Преподаватель уже получил уведомление. Как только он ответит, сообщение придёт тебе в этот чат.`,
+      { parse_mode: "Markdown" },
+    );
+  });
+
+  // Закрытие тикета через inline-кнопку в сообщении администратора
+  bot.callbackQuery(/^close_ticket_(.+)$/, async (ctx) => {
+    const ticketId = ctx.match[1];
+    const db = getDb();
+    db.update(schema.supportTickets)
+      .set({ status: "closed" })
+      .where(eq(schema.supportTickets.id, ticketId))
+      .run();
+
+    await ctx.answerCallbackQuery({ text: "Тикет закрыт" });
+    await ctx.editMessageText(
+      (ctx.callbackQuery.message?.text || "") + "\n\n🔒 **Тикет закрыт.**",
+      { parse_mode: "Markdown" },
+    );
+  });
+
+  // Обработка Telegram Reply на сообщение с тикетом от администратора
+  bot.on("message:text", async (ctx, next) => {
+    const replyTo = ctx.message.reply_to_message;
+    if (!replyTo) return next();
+
+    const db = getDb();
+    const tgUser = ctx.from;
+    const adminUser = db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.telegram_id, tgUser.id))
+      .get();
+
+    const isAdmin =
+      tgUser.username?.toLowerCase() === "pr0_chatbot" ||
+      tgUser.id === 5439779879 ||
+      adminUser?.role === "admin";
+
+    if (!isAdmin) return next();
+
+    // Ищем тикет по идентификатору из текста цитируемого сообщения
+    const match = replyTo.text?.match(/Тикет #([a-f0-9]{8})/i);
+    if (match) {
+      const shortId = match[1];
+      const allMatching = db
+        .select()
+        .from(schema.supportTickets)
+        .all();
+      const ticket = allMatching.find((t) => t.id.startsWith(shortId));
+
+      if (ticket) {
+        const { replyToSupportTicket } = await import("@/lib/support/tickets");
+        await replyToSupportTicket({
+          ticketId: ticket.id,
+          replyText: ctx.message.text,
+          adminUserId: adminUser?.id,
+        });
+
+        await ctx.reply(`✅ **Ответ отправлен студенту!** (Тикет #${ticket.id.slice(0, 8)})`, {
+          parse_mode: "Markdown",
+        });
+        return;
+      }
+    }
+
+    return next();
   });
 
   _botInstance = bot;
