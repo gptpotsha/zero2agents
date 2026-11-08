@@ -6,6 +6,7 @@ export const users = sqliteTable("users", {
   username: text("username").notNull().unique(),
   // Email пользователя для входа, синхронизации и техподдержки
   email: text("email").unique(),
+  email_verified: integer("email_verified").notNull().default(0), // 0 | 1
   // Формат: scrypt$N$r$p$salt_b64$hash_b64 (nullable, если вход только через Telegram)
   pass_hash: text("pass_hash"),
   role: text("role").notNull().default("user"), // free-план сегодня; задел под entitlements

@@ -20,6 +20,7 @@ export default async function SettingsPage() {
       track_id: schema.users.track_id,
       role_id: schema.users.role_id,
       email: schema.users.email,
+      email_verified: schema.users.email_verified,
       telegram_id: schema.users.telegram_id,
       telegram_username: schema.users.telegram_username,
       role: schema.users.role,
@@ -58,6 +59,7 @@ export default async function SettingsPage() {
             </p>
             <AccountSyncPanel
               currentEmail={row?.email ?? null}
+              isEmailVerified={Boolean(row?.email_verified)}
               telegramUsername={row?.telegram_username ?? null}
               telegramId={row?.telegram_id ?? null}
             />

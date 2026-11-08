@@ -5,6 +5,8 @@ import { z } from "zod";
 import { getDb, schema } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/session";
 import { createLinkToken } from "@/lib/auth/account-link";
+import { getTelegramBot } from "@/server/telegram/bot";
+import { InlineKeyboard } from "grammy";
 import { revalidatePath } from "next/cache";
 
 const emailSchema = z.string().trim().email("Укажи корректный email-адрес");
@@ -34,13 +36,54 @@ export async function updateEmailAction(
     return { error: "Этот email уже привязан к другому аккаунту." };
   }
 
+  // При сохранении нового email сбрасываем статус верификации
   db.update(schema.users)
-    .set({ email: parsed.data })
+    .set({ email: parsed.data, email_verified: 0 })
     .where(eq(schema.users.id, sessionUser.id))
     .run();
 
   revalidatePath("/settings");
-  return { ok: "Email успешно сохранен и привязан к аккаунту." };
+
+  // Автоматически отправляем запрос на подтверждение в Telegram, если бот привязан
+  await sendEmailVerificationRequestAction();
+
+  return { ok: "Email сохранен. В Telegram-бот отправлена кнопка подтверждения!" };
+}
+
+/** Отправка запроса на верификацию Email через привязанного Telegram-бота */
+export async function sendEmailVerificationRequestAction(): Promise<{ ok: boolean; error?: string }> {
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) return { ok: false, error: "Сессия истекла." };
+
+  const db = getDb();
+  const user = db.select().from(schema.users).where(eq(schema.users.id, sessionUser.id)).get();
+
+  if (!user || !user.email) {
+    return { ok: false, error: "Email не указан." };
+  }
+
+  if (!user.telegram_id) {
+    return { ok: false, error: "Сначала привяжите Telegram-бота, чтобы подтвердить Email в 1 клик." };
+  }
+
+  try {
+    const bot = getTelegramBot();
+    const kb = new InlineKeyboard()
+      .text("✅ Подтвердить Email", `verify_email_${user.id}`)
+      .text("❌ Отклонить", "cancel_email_verify");
+
+    await bot.api.sendMessage(
+      user.telegram_id,
+      `🔐 **Запрос на подтверждение Email:**\n\n` +
+        `К твоему аккаунту привязывается адрес: \`${user.email}\`\n\n` +
+        `Если это сделал ты, нажми кнопку ниже:`,
+      { parse_mode: "Markdown", reply_markup: kb },
+    );
+
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: "Не удалось отправить сообщение в Telegram: " + (err as Error).message };
+  }
 }
 
 /** Создание одноразовой ссылки и 6-значного кода для привязки Telegram */

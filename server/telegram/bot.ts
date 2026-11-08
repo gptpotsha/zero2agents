@@ -229,6 +229,35 @@ export function getTelegramBot(): Bot {
     );
   });
 
+  // Обработка кнопки подтверждения Email в 1 клик
+  bot.callbackQuery(/^verify_email_(.+)$/, async (ctx) => {
+    const targetUserId = ctx.match[1];
+    const tgUser = ctx.from;
+    const db = getDb();
+
+    const user = db.select().from(schema.users).where(eq(schema.users.id, targetUserId)).get();
+    if (!user || user.telegram_id !== tgUser.id) {
+      await ctx.answerCallbackQuery({ text: "Ошибка доступа или неверный запрос.", show_alert: true });
+      return;
+    }
+
+    db.update(schema.users)
+      .set({ email_verified: 1 })
+      .where(eq(schema.users.id, user.id))
+      .run();
+
+    await ctx.answerCallbackQuery({ text: "✅ Email успешно подтверждён!" });
+    await ctx.editMessageText(
+      `✅ **Email подтверждён!**\n\nАдрес \`${user.email}\` успешно привязан и верифицирован для аккаунта **${user.username}**.`,
+      { parse_mode: "Markdown" },
+    );
+  });
+
+  bot.callbackQuery("cancel_email_verify", async (ctx) => {
+    await ctx.answerCallbackQuery({ text: "Отклонено" });
+    await ctx.editMessageText("❌ Привязка Email отменена.");
+  });
+
   // Команда /web — одноразовая ссылка для мгновенного входа в браузере на ПК
   bot.command("web", async (ctx) => {
     const tgUser = ctx.from;

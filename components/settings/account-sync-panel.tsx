@@ -3,16 +3,22 @@
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { updateEmailAction, generateTgLinkAction } from "@/app/actions/account-sync";
+import {
+  updateEmailAction,
+  generateTgLinkAction,
+  sendEmailVerificationRequestAction,
+} from "@/app/actions/account-sync";
 
 interface AccountSyncPanelProps {
   currentEmail: string | null;
+  isEmailVerified: boolean;
   telegramUsername: string | null;
   telegramId: number | null;
 }
 
 export function AccountSyncPanel({
   currentEmail,
+  isEmailVerified,
   telegramUsername,
   telegramId,
 }: AccountSyncPanelProps) {
@@ -24,6 +30,8 @@ export function AccountSyncPanel({
   const [isEditingEmail, setIsEditingEmail] = useState(!currentEmail);
   const [tgLinkData, setTgLinkData] = useState<{ link?: string; code?: string } | null>(null);
   const [isGeneratingTg, setIsGeneratingTg] = useState(false);
+  const [isSendingVerify, setIsSendingVerify] = useState(false);
+  const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
 
   const handleGenerateTgLink = async () => {
     setIsGeneratingTg(true);
@@ -34,6 +42,21 @@ export function AccountSyncPanel({
       }
     } finally {
       setIsGeneratingTg(false);
+    }
+  };
+
+  const handleSendVerifyToTelegram = async () => {
+    setIsSendingVerify(true);
+    setVerifyMessage(null);
+    try {
+      const res = await sendEmailVerificationRequestAction();
+      if (res.ok) {
+        setVerifyMessage("Кнопка подтверждения отправлена в твой Telegram-бот!");
+      } else {
+        setVerifyMessage(res.error || "Ошибка отправки.");
+      }
+    } finally {
+      setIsSendingVerify(false);
     }
   };
 
@@ -64,11 +87,41 @@ export function AccountSyncPanel({
         </div>
 
         {currentEmail && !isEditingEmail ? (
-          <div className="mt-3 flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-500">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Привязан: <strong className="text-foreground">{currentEmail}</strong>
-            </span>
+          <div className="mt-3 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {isEmailVerified ? (
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-500">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Подтверждён: <strong className="text-foreground">{currentEmail}</strong>
+                </span>
+              ) : (
+                <>
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-500">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    Не подтверждён: <strong className="text-foreground">{currentEmail}</strong>
+                  </span>
+                  {telegramId ? (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleSendVerifyToTelegram}
+                      disabled={isSendingVerify}
+                      className="h-7 text-xs"
+                    >
+                      {isSendingVerify ? "Отправка..." : "✈️ Подтвердить через Telegram"}
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      (привяжи Telegram ниже для подтверждения)
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+
+            {verifyMessage && (
+              <p className="text-xs font-medium text-primary mt-1">{verifyMessage}</p>
+            )}
           </div>
         ) : (
           <form action={emailFormAction} className="mt-4 space-y-3">
