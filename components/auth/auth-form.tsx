@@ -1,19 +1,55 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { loginAction, registerAction, loginWithMagicCodeAction, type AuthState } from "@/app/actions/auth";
+import {
+  loginAction,
+  registerAction,
+  loginWithMagicCodeAction,
+  loginWithMagicTokenAction,
+  type AuthState,
+} from "@/app/actions/auth";
 
-export function AuthForm({ mode }: { mode: "login" | "register" }) {
+export function AuthForm({
+  mode,
+  initialMagicToken,
+}: {
+  mode: "login" | "register";
+  initialMagicToken?: string;
+}) {
   const action = mode === "login" ? loginAction : registerAction;
   const [state, formAction, pending] = useActionState<AuthState, FormData>(action, {});
   const [codeState, codeFormAction, codePending] = useActionState<AuthState, FormData>(loginWithMagicCodeAction, {});
   const [showCodeInput, setShowCodeInput] = useState(false);
+  const [magicLoading, setMagicLoading] = useState(Boolean(initialMagicToken));
+  const [magicError, setMagicError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialMagicToken) {
+      setMagicLoading(true);
+      loginWithMagicTokenAction(initialMagicToken).then((res) => {
+        if (res && res.error) {
+          setMagicError(res.error);
+          setMagicLoading(false);
+        }
+      });
+    }
+  }, [initialMagicToken]);
 
   const isLogin = mode === "login";
+
+  if (magicLoading) {
+    return (
+      <div className="w-full max-w-sm rounded-xl border p-8 bg-card text-center shadow-sm">
+        <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <h2 className="text-lg font-bold">Входим по ссылке из Telegram...</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Проверяем одноразовый токен авторизации</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-sm">
@@ -51,6 +87,11 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
         {/* Быстрый вход / регистрация через Telegram */}
         <div className="mt-5 space-y-3">
+          {magicError && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+              ⚠️ {magicError}
+            </div>
+          )}
           <a
             href="https://t.me/ZeroToAgent_bot"
             target="_blank"

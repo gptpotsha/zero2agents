@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ru" className="h-full antialiased dark" suppressHydrationWarning>
       <head>
-        <script src="https://telegram.org/js/telegram-web-app.js" async />
+        <script src="https://telegram.org/js/telegram-web-app.js" />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="flex min-h-full flex-col bg-background text-foreground">

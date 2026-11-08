@@ -106,6 +106,22 @@ export async function loginWithMagicCodeAction(_prev: AuthState, formData: FormD
   redirect("/dashboard");
 }
 
+/** Вход по одноразовой ссылке из бота (/web?magic=...) */
+export async function loginWithMagicTokenAction(token: string): Promise<AuthState> {
+  if (!token || !token.startsWith("web_magic_login_")) {
+    return { error: "Недействительный токен входа." };
+  }
+
+  const userId = await consumeLinkToken({ token, purpose: "web_magic_login" });
+  if (!userId) {
+    return { error: "Ссылка устарела или уже была использована (срок действия 10 минут)." };
+  }
+
+  const sessionToken = await createSession(userId);
+  await setSessionCookie(sessionToken);
+  redirect("/dashboard");
+}
+
 export async function logoutAction(): Promise<void> {
   await destroySession();
   redirect("/");

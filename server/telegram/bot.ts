@@ -5,12 +5,40 @@ import { getOrCreateTelegramUser } from "@/lib/auth/telegram";
 import { consumeLinkToken, mergeUserAccounts } from "@/lib/auth/account-link";
 import { ROLES, listRoles } from "@/lib/content/plan";
 
-const REQUIRED_CHANNELS = [
+export const REQUIRED_CHANNELS = [
   { username: "homotext", url: "https://t.me/homotext", title: "homotext" },
   { username: "NetGeniusAI", url: "https://t.me/NetGeniusAI", title: "NetGeniusAI" },
 ];
 
 let _botInstance: Bot | null = null;
+
+/**
+ * Проверка подписки пользователя на обязательные каналы.
+ * Fail-closed: любая ошибка (например, чат не найден или пользователь не состоит) считает канал неподписанным.
+ */
+export async function checkUserSubscriptions(
+  userId: number,
+  botOverride?: Bot,
+): Promise<{ isSubscribed: boolean; missing: string[] }> {
+  const bot = botOverride || getTelegramBot();
+  const missing: string[] = [];
+
+  for (const channel of REQUIRED_CHANNELS) {
+    try {
+      const member = await bot.api.getChatMember(`@${channel.username}`, userId);
+      const activeStatuses = ["creator", "administrator", "member", "restricted"];
+      if (!activeStatuses.includes(member.status)) {
+        missing.push(channel.username);
+      }
+    } catch (err: any) {
+      console.warn(`[Telegram Bot] Проверка подписки на @${channel.username} для ${userId}:`, err?.description || err?.message || err);
+      // Если пользователя нет в чате или ошибка — fail-closed
+      missing.push(channel.username);
+    }
+  }
+
+  return { isSubscribed: missing.length === 0, missing };
+}
 
 export function getTelegramBot(): Bot {
   if (_botInstance) return _botInstance;
@@ -22,34 +50,14 @@ export function getTelegramBot(): Bot {
 
   const bot = new Bot(token);
 
-  // Проверка подписки пользователя на каналы
-  async function checkUserSubscriptions(userId: number): Promise<{ isSubscribed: boolean; missing: string[] }> {
-    const missing: string[] = [];
-
-    for (const channel of REQUIRED_CHANNELS) {
-      try {
-        const member = await bot.api.getChatMember(`@${channel.username}`, userId);
-        const activeStatuses = ["creator", "administrator", "member", "restricted"];
-        if (!activeStatuses.includes(member.status)) {
-          missing.push(channel.username);
-        }
-      } catch (err) {
-        // Если бот не админ в канале или ошибка доступа, логируем
-        console.warn(`[Telegram Bot] Не удалось проверить подписку на @${channel.username}:`, err);
-      }
-    }
-
-    return { isSubscribed: missing.length === 0, missing };
-  }
-
   // /start обработчик
   bot.command("start", async (ctx) => {
     const payload = ctx.match?.trim(); // deep-link параметр
     const tgUser = ctx.from;
     if (!tgUser) return;
 
-    // 1. Проверяем, не является ли payload токеном привязки аккаунта с сайта (link_XXXX)
-    if (payload?.startsWith("link_")) {
+    // 1. Проверяем, не является ли payload токеном привязки аккаунта с сайта (tg_link_XXXX или link_XXXX)
+    if (payload?.startsWith("tg_link_") || payload?.startsWith("link_")) {
       const webUserId = await consumeLinkToken({ token: payload, purpose: "tg_link" });
       if (webUserId) {
         const currentTgUser = await getOrCreateTelegramUser({
@@ -66,6 +74,11 @@ export function getTelegramBot(): Bot {
           { parse_mode: "Markdown" },
         );
         return;
+      } else {
+        await ctx.reply(
+          `❌ Ссылка привязки недействительна или её срок (10 минут) истёк. Сгенерируй новую ссылку в Личном кабинете.`,
+        );
+        return;
       }
     }
 
@@ -78,7 +91,7 @@ export function getTelegramBot(): Bot {
     });
 
     // 2. Проверка подписки на обязательные каналы
-    const subCheck = await checkUserSubscriptions(tgUser.id);
+    const subCheck = await checkUserSubscriptions(tgUser.id, bot);
     const db = getDb();
 
     db.update(schema.users)
@@ -110,6 +123,33 @@ export function getTelegramBot(): Bot {
 
     // 3. Если подписан — переход к онбордингу
     await sendOnboardingStep(ctx, user.id);
+  });
+
+  // Обработка ручного ввода 6-значного кода привязки аккаунта
+  bot.hears(/^\d{6}$/, async (ctx) => {
+    const code = ctx.match[0];
+    const tgUser = ctx.from;
+    if (!tgUser) return;
+
+    const webUserId = await consumeLinkToken({ code, purpose: "tg_link" });
+    if (webUserId) {
+      const currentTgUser = await getOrCreateTelegramUser({
+        id: tgUser.id,
+        username: tgUser.username,
+        first_name: tgUser.first_name,
+      });
+
+      await mergeUserAccounts(webUserId, currentTgUser.id);
+
+      await ctx.reply(
+        `🎉 **Аккаунт успешно привязан по коду!**\n\nТвой Telegram теперь синхронизирован с профилем на платформе. Твой прогресс сохранен!`,
+        { parse_mode: "Markdown" },
+      );
+    } else {
+      await ctx.reply(
+        `❌ Код привязки не найден или его срок (10 минут) истёк. Сгенерируй новый код в Личном кабинете на сайте.`,
+      );
+    }
   });
 
   // Callback проверки подписки
@@ -213,8 +253,11 @@ export function getTelegramBot(): Bot {
       .row()
       .webApp("👤 Личный кабинет и настройки", `${webAppUrl}/settings`);
 
-    // Если это админ (@PR0_chatbot) — добавляем кнопку Админки прямо сюда
-    const isAdmin = tgUser.username?.toLowerCase() === "pr0_chatbot";
+    // Если это админ (@PR0_chatbot или role === 'admin') — добавляем кнопку Админки прямо сюда
+    const isAdmin =
+      tgUser.username?.toLowerCase() === "pr0_chatbot" ||
+      tgUser.id === 5439779879 ||
+      user?.role === "admin";
     if (isAdmin) {
       kb.row().webApp("🛠 Админ-панель (Mini App)", `${webAppUrl}/admin`);
     }
@@ -272,7 +315,7 @@ export function getTelegramBot(): Bot {
 
     const { createLinkToken } = await import("@/lib/auth/account-link");
     const { token, code } = await createLinkToken(user.id, "web_magic_login");
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://zero2agents.com";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://prochatbot.pro";
     const magicUrl = `${baseUrl}/login?magic=${token}`;
 
     await ctx.reply(
@@ -296,14 +339,20 @@ export function getTelegramBot(): Bot {
     );
   });
 
-  // Команда /admin — прямой доступ к Mini App админ-панели для @PR0_chatbot
+  // Команда /admin — прямой доступ к Mini App админ-панели для администратора
   bot.command("admin", async (ctx) => {
     const tgUser = ctx.from;
     if (!tgUser) return;
 
-    const isAdmin = tgUser.username?.toLowerCase() === "pr0_chatbot";
+    const db = getDb();
+    const user = db.select().from(schema.users).where(eq(schema.users.telegram_id, tgUser.id)).get();
+    const isAdmin =
+      tgUser.username?.toLowerCase() === "pr0_chatbot" ||
+      tgUser.id === 5439779879 ||
+      user?.role === "admin";
+
     if (!isAdmin) {
-      await ctx.reply("❌ Доступ ограничен. Эта команда только для администратора (@PR0_chatbot).");
+      await ctx.reply("❌ Доступ ограничен. Эта команда только для администратора.");
       return;
     }
 

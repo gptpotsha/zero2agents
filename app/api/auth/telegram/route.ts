@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateTelegramInitData, getOrCreateTelegramUser } from "@/lib/auth/telegram";
 import { createSession } from "@/lib/auth/session";
+import { checkUserSubscriptions, REQUIRED_CHANNELS } from "@/server/telegram/bot";
+import { getDb, schema } from "@/lib/db";
+import { eq } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,6 +32,36 @@ export async function POST(req: NextRequest) {
       first_name: tgUser.first_name,
       utm_source: utmSource,
     });
+
+    // Обязательная проверка подписки на каналы перед выдачей сессии
+    let isSubscribed = user.is_subscribed_channels === 1;
+    let missingChannels: string[] = [];
+
+    if (!isSubscribed) {
+      const subCheck = await checkUserSubscriptions(tgUser.id);
+      if (subCheck.isSubscribed) {
+        isSubscribed = true;
+        getDb()
+          .update(schema.users)
+          .set({ is_subscribed_channels: 1 })
+          .where(eq(schema.users.id, user.id))
+          .run();
+      } else {
+        missingChannels = subCheck.missing;
+      }
+    }
+
+    if (!isSubscribed) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "subscription_required",
+          missing: missingChannels,
+          channels: REQUIRED_CHANNELS,
+        },
+        { status: 403 },
+      );
+    }
 
     const token = await createSession(user.id);
 
