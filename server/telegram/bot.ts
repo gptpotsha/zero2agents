@@ -208,7 +208,10 @@ export function getTelegramBot(): Bot {
 
     const webAppUrl = process.env.NEXT_PUBLIC_APP_URL || "https://prochatbot.pro";
 
-    const kb = new InlineKeyboard().webApp("🚀 Открыть платформу Zero2Agents", webAppUrl);
+    const kb = new InlineKeyboard()
+      .webApp("🚀 Открыть платформу Zero2Agents", webAppUrl)
+      .row()
+      .webApp("👤 Личный кабинет и настройки", `${webAppUrl}/settings`);
 
     // Если это админ (@PR0_chatbot) — добавляем кнопку Админки прямо сюда
     const isAdmin = tgUser.username?.toLowerCase() === "pr0_chatbot";
@@ -249,6 +252,18 @@ export function getTelegramBot(): Bot {
         `2. Либо введи на странице входа 6-значный код: \`${code}\`\n\n` +
         `⏱ Ссылка и код действуют 10 минут.`,
       { parse_mode: "Markdown" },
+    );
+  });
+
+  // Команда /profile или /cabinet — прямой переход в Личный кабинет Mini App
+  bot.command(["profile", "cabinet", "settings"], async (ctx) => {
+    const webAppUrl = process.env.NEXT_PUBLIC_APP_URL || "https://prochatbot.pro";
+    const kb = new InlineKeyboard().webApp("👤 Открыть Личный кабинет", `${webAppUrl}/settings`);
+
+    await ctx.reply(
+      `👤 **Личный кабинет Zero2Agents:**\n\n` +
+        `Здесь ты можешь сменить цель/роль обучения, переключить AI-агента, настроить пароль для входа с ПК и управлять своим прогрессом.`,
+      { parse_mode: "Markdown", reply_markup: kb },
     );
   });
 
