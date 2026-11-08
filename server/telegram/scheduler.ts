@@ -162,10 +162,54 @@ export async function sendAdminDailyDigest() {
 }
 
 /**
- * Отправка ежедневного контрольного вопроса (SRS)
+ * Отправляет конкретный SRS-вопрос пользователю в Telegram
+ */
+export async function sendSrsQuestionToUser(cardId: string, telegramId: number) {
+  const bot = getTelegramBot();
+  const db = getDb();
+
+  const card = db.select().from(schema.srsCards).where(eq(schema.srsCards.id, cardId)).get();
+  if (!card) return false;
+
+  const [levelId, slug] = card.lesson_id.includes("/") ? card.lesson_id.split("/") : ["1", card.lesson_id];
+  const { getQuestionForLesson } = await import("@/lib/srs/service");
+  const qData = getQuestionForLesson(levelId, slug);
+
+  const kb = new InlineKeyboard();
+  qData.options.forEach((opt, idx) => {
+    kb.text(opt, `srs_${card.id}_${idx}`);
+    if (idx % 2 === 1) kb.row();
+  });
+
+  const attemptNum = (card.current_attempts || 0) + 1;
+  const text =
+    `🧠 **Контрольный вопрос для закрепления:**\n` +
+    `📚 Урок: \`${card.lesson_id}\`\n\n` +
+    `${qData.question}\n\n` +
+    `Попытка ${attemptNum} из 3:`;
+
+  try {
+    await bot.api.sendMessage(telegramId, text, {
+      parse_mode: "Markdown",
+      reply_markup: kb,
+    });
+
+    db.update(schema.srsCards)
+      .set({ status: "active_in_chat" })
+      .where(eq(schema.srsCards.id, card.id))
+      .run();
+
+    return true;
+  } catch (err) {
+    console.warn(`[SRS Send Error for card ${cardId}]`, err);
+    return false;
+  }
+}
+
+/**
+ * Отправка ежедневного контрольного вопроса (SRS) по расписанию
  */
 export async function sendDailySrsQuestions() {
-  const bot = getTelegramBot();
   const db = getDb();
   const now = Date.now();
 
@@ -187,31 +231,6 @@ export async function sendDailySrsQuestions() {
 
   for (const item of dueCards) {
     if (!item.user.telegram_id) continue;
-
-    const kb = new InlineKeyboard()
-      .text("A) pwd", `srs_${item.card.id}_pwd`)
-      .text("B) ls", `srs_${item.card.id}_ls`)
-      .row()
-      .text("C) cd", `srs_${item.card.id}_cd`)
-      .text("D) whoami", `srs_${item.card.id}_whoami`);
-
-    const text =
-      `🧠 **Ежедневный контрольный вопрос для закрепления:**\n\n` +
-      `Какая команда выводит текущую рабочую директорию в терминале (точку «Вы находитесь здесь»)?\n\n` +
-      `Попытка 1 из 3:`;
-
-    try {
-      await bot.api.sendMessage(item.user.telegram_id, text, {
-        parse_mode: "Markdown",
-        reply_markup: kb,
-      });
-
-      db.update(schema.srsCards)
-        .set({ status: "active_in_chat" })
-        .where(eq(schema.srsCards.id, item.card.id))
-        .run();
-    } catch (err) {
-      console.warn("[SRS Scheduler Error]", err);
-    }
+    await sendSrsQuestionToUser(item.card.id, item.user.telegram_id);
   }
 }

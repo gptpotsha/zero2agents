@@ -108,5 +108,14 @@ export async function completeLesson(
   if (!dup) {
     recordActivity(user.id, "lesson_completed", { lessonId, levelId });
   }
+
+  // Создаём или обновляем карточку интервального повторения (SRS) для этого урока
+  try {
+    const { createOrUpdateSrsCard } = await import("@/lib/srs/service");
+    await createOrUpdateSrsCard(user.id, lessonId);
+  } catch (srsErr) {
+    console.warn("[SRS Card Auto-create Error]", srsErr);
+  }
+
   return { ok: true };
 }

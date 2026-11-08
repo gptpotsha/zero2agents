@@ -1,6 +1,6 @@
 import { Bot, InlineKeyboard } from "grammy";
 import { getDb, schema } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { getOrCreateTelegramUser } from "@/lib/auth/telegram";
 import { consumeLinkToken, mergeUserAccounts } from "@/lib/auth/account-link";
 import { ROLES, listRoles } from "@/lib/content/plan";
@@ -335,6 +335,140 @@ export function getTelegramBot(): Bot {
     await ctx.reply(
       `👤 **Личный кабинет Zero2Agents:**\n\n` +
         `Здесь ты можешь сменить цель/роль обучения, переключить AI-агента, настроить пароль для входа с ПК и управлять своим прогрессом.`,
+      { parse_mode: "Markdown", reply_markup: kb },
+    );
+  });
+
+  // Команда /quiz для запуска контрольного вопроса на закрепление материала
+  bot.command(["quiz", "srs"], async (ctx) => {
+    const tgUser = ctx.from;
+    if (!tgUser) return;
+
+    const db = getDb();
+    const user = db.select().from(schema.users).where(eq(schema.users.telegram_id, tgUser.id)).get();
+    if (!user) {
+      await ctx.reply("Сначала нажми /start для регистрации.");
+      return;
+    }
+
+    // Ищем доступную карточку повторения
+    let card = db
+      .select()
+      .from(schema.srsCards)
+      .where(and(eq(schema.srsCards.user_id, user.id), eq(schema.srsCards.status, "pending")))
+      .get();
+
+    if (!card) {
+      card = db
+        .select()
+        .from(schema.srsCards)
+        .where(eq(schema.srsCards.user_id, user.id))
+        .get();
+    }
+
+    if (!card) {
+      await ctx.reply(
+        `🎓 **У тебя пока нет карточек для повторения!**\n\n` +
+          `Пройди первый урок на платформе Zero2Agents, и бот автоматически создаст контрольный вопрос для закрепления темы.`,
+        { parse_mode: "Markdown" },
+      );
+      return;
+    }
+
+    const { sendSrsQuestionToUser } = await import("@/server/telegram/scheduler");
+    await sendSrsQuestionToUser(card.id, tgUser.id);
+  });
+
+  // Обработка ответов на викторину SRS (3 попытки с прогрессивными подсказками)
+  bot.callbackQuery(/^srs_([^_]+)_(\d+)$/, async (ctx) => {
+    const cardId = ctx.match[1];
+    const optIdx = parseInt(ctx.match[2], 10);
+
+    const db = getDb();
+    const card = db.select().from(schema.srsCards).where(eq(schema.srsCards.id, cardId)).get();
+    if (!card) {
+      await ctx.answerCallbackQuery({ text: "Вопрос устарел или не найден.", show_alert: true });
+      return;
+    }
+
+    const [levelId, slug] = card.lesson_id.includes("/") ? card.lesson_id.split("/") : ["1", card.lesson_id];
+    const { getQuestionForLesson, processSrsAnswer } = await import("@/lib/srs/service");
+    const qData = getQuestionForLesson(levelId, slug);
+
+    const chosenAnswer = qData.options[optIdx];
+    if (!chosenAnswer) {
+      await ctx.answerCallbackQuery({ text: "Неверный выбор.", show_alert: true });
+      return;
+    }
+
+    const result = await processSrsAnswer(cardId, chosenAnswer);
+    const webAppUrl = process.env.NEXT_PUBLIC_APP_URL || "https://prochatbot.pro";
+
+    if (result.correct) {
+      await ctx.answerCallbackQuery({ text: "🎉 Абсолютно верно!" });
+      const kb = new InlineKeyboard().webApp("🚀 Открыть платформу", webAppUrl);
+
+      await ctx.editMessageText(
+        `🎉 **Абсолютно верно!**\n\n` +
+          `Твой ответ: \`${chosenAnswer}\`\n\n` +
+          `📈 Карточка повышена в **Box ${result.box} из 5** системы интервального повторения Лейтнера.\n` +
+          (result.isMastered ? "🏆 **Поздравляем! Эта тема полностью освоена!**\n\n" : "\n") +
+          `Держи темп и продолжай обучение:`,
+        { parse_mode: "Markdown", reply_markup: kb },
+      );
+      return;
+    }
+
+    // Неверный ответ
+    await ctx.answerCallbackQuery({ text: "❌ Неверно. Изучи подсказку!", show_alert: true });
+
+    if (result.attempt === 1) {
+      const kb = new InlineKeyboard();
+      qData.options.forEach((opt, idx) => {
+        kb.text(opt, `srs_${card.id}_${idx}`);
+        if (idx % 2 === 1) kb.row();
+      });
+
+      await ctx.editMessageText(
+        `❌ **Не совсем так.** (Попытка 1 из 3)\n\n` +
+          `📚 Урок: \`${card.lesson_id}\`\n` +
+          `❓ ${qData.question}\n\n` +
+          `💡 **Концептуальная подсказка:**\n_${result.hint}_\n\n` +
+          `Попробуй ещё раз:`,
+        { parse_mode: "Markdown", reply_markup: kb },
+      );
+      return;
+    }
+
+    if (result.attempt === 2) {
+      const kb = new InlineKeyboard();
+      qData.options.forEach((opt, idx) => {
+        kb.text(opt, `srs_${card.id}_${idx}`);
+        if (idx % 2 === 1) kb.row();
+      });
+
+      await ctx.editMessageText(
+        `❌ **Снова не то.** (Попытка 2 из 3)\n\n` +
+          `📚 Урок: \`${card.lesson_id}\`\n` +
+          `❓ ${qData.question}\n\n` +
+          `🔍 **Синтаксическая подсказка:**\n_${result.hint}_\n\n` +
+          `Осталась последняя попытка:`,
+        { parse_mode: "Markdown", reply_markup: kb },
+      );
+      return;
+    }
+
+    // Попытка 3: Исчерпаны все 3 попытки
+    const kb = new InlineKeyboard()
+      .url("📖 Повторить урок на платформе", result.lessonUrl || webAppUrl)
+      .row()
+      .webApp("🚀 Открыть Zero2Agents", webAppUrl);
+
+    await ctx.editMessageText(
+      `😔 **Попытки исчерпаны.** (Попытка 3 из 3)\n\n` +
+        `Правильный ответ: **${result.correctAnswer}**\n\n` +
+        `📖 **Разбор темы:**\n${result.explanation}\n\n` +
+        `Карточка сброшена в Box 1 — мы повторим этот вопрос завтра. Обязательно освежи тему в уроке:`,
       { parse_mode: "Markdown", reply_markup: kb },
     );
   });
